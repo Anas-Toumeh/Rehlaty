@@ -1,6 +1,11 @@
 // controllers/bookingController.js
 const Booking = require('../Modle/Booking');
 const Trip = require('../Modle/Trip');
+const Cash = require('../Modle/Cash');
+const Company = require('../Modle/Company');
+const Payment = require('../Modle/Payment');
+const User = require('../Modle/User');
+const bcrypt = require('bcryptjs');
 
 exports.createBooking = async (req, res) => {
     try {
@@ -9,7 +14,6 @@ exports.createBooking = async (req, res) => {
         
         const userId = req.user.id;
 
-        // 1. جلب الرحلة مع معلومات الشركة
         const trip = await Trip.findById(tripId);
         if (!trip) {
             return res.status(404).json({
@@ -18,13 +22,11 @@ exports.createBooking = async (req, res) => {
             });
         }
 
-        // 2. جلب جميع الحجوزات المؤكدة لهذه الرحلة
         const existingBookings = await Booking.find({
             tripId: tripId,
             paymentStatus: { $ne: 'Cancelled' }
         });
 
-        // 3. حساب المقاعد المحجوزة حالياً
         const bookedSeats = [];
         for (const booking of existingBookings) {
             for (const seat of booking.selectedSeats) {
@@ -32,7 +34,6 @@ exports.createBooking = async (req, res) => {
             }
         }
 
-        // 4. التحقق من أن المقاعد المطلوبة غير محجوزة مسبقاً
         for (const seat of selectedSeats) {
             if (bookedSeats.includes(seat.seatNumber)) {
                 return res.status(400).json({
@@ -42,7 +43,6 @@ exports.createBooking = async (req, res) => {
             }
         }
 
-        // 5. التحقق من أن عدد المقاعد لا يتجاوز السعة القصوى
         const totalSeatsToBook = selectedSeats.length;
         const availableSeats = trip.totalSeats - bookedSeats.length;
         
@@ -53,7 +53,6 @@ exports.createBooking = async (req, res) => {
             });
         }
 
-        // 6. إنشاء الحجز
         const booking = new Booking({
             userId,
             tripId,
@@ -65,7 +64,6 @@ exports.createBooking = async (req, res) => {
 
         await booking.save();
 
-        // 7. إعادة الحجز مع populate
         await booking.populate('tripDetails');
         await booking.populate('userDetails');
 
@@ -84,6 +82,171 @@ exports.createBooking = async (req, res) => {
         });
     }
 };
+
+// @desc    Create booking and process wallet payment (simulated cash wallets)
+// @route   POST /api/bookings/pay
+// @access  Private (Customer)
+exports.createBookingWithPayment = async (req, res) => {
+    try {
+        const userId = req.user.id || req.user._id;
+        const { tripId, selectedSeats, phone, password } = req.body;
+
+        // Basic validation
+        if (!tripId || !Array.isArray(selectedSeats) || selectedSeats.length === 0) {
+            return res.status(400).json({ success: false, message: 'بيانات الحجز غير مكتملة' });
+        }
+
+        // 1) fetch trip
+        const trip = await Trip.findById(tripId);
+        if (!trip) {
+            return res.status(404).json({ success: false, message: 'الرحلة غير موجودة' });
+        }
+
+        // 2) validate seat numbers and uniqueness
+        const seatNumbers = selectedSeats.map(s => Number(s.seatNumber)).filter(n => !Number.isNaN(n));
+        if (seatNumbers.length !== selectedSeats.length) {
+            return res.status(400).json({ success: false, message: 'بيانات أرقام المقاعد غير صحيحة' });
+        }
+        const uniqueSeats = [...new Set(seatNumbers)];
+        if (uniqueSeats.length !== seatNumbers.length) {
+            return res.status(400).json({ success: false, message: 'يوجد مقاعد مكررة في الطلب' });
+        }
+        const maxSeats = trip.totalSeats || 45;
+        for (const n of seatNumbers) {
+            if (n < 1 || n > maxSeats) {
+                return res.status(400).json({ success: false, message: `رقم مقعد غير صالح: ${n}` });
+            }
+        }
+
+        // 3) server-side amount calculation
+        const amount = seatNumbers.length * (trip.price || 0);
+
+        // 4) initial availability check
+        const existingBookings = await Booking.find({ tripId: trip._id, paymentStatus: { $ne: 'Cancelled' } });
+        const bookedSet = new Set();
+        for (const b of existingBookings) {
+            for (const s of b.selectedSeats) {
+                bookedSet.add(Number(s.seatNumber));
+            }
+        }
+        for (const n of seatNumbers) {
+            if (bookedSet.has(n)) {
+                return res.status(400).json({ success: false, message: `المقعد رقم ${n} غير متاح` });
+            }
+        }
+
+        // 5) find payer cash account by phone
+        const payer = await Cash.findOne({ phone });
+        if (!payer) {
+            return res.status(404).json({ success: false, message: 'الحساب غير موجود' });
+        }
+
+        // 6) ensure payer belongs to logged-in user
+        const user = await User.findById(userId);
+        if (!user) {
+            return res.status(401).json({ success: false, message: 'المستخدم غير موجود' });
+        }
+        if (String(user.phone) !== String(payer.phone)) {
+            return res.status(403).json({ success: false, message: 'محفظة الدفع لا تنتمي للمستخدم المسجل' });
+        }
+
+        // 7) verify password
+        const isMatch = await bcrypt.compare(password, payer.password);
+        if (!isMatch) {
+            return res.status(401).json({ success: false, message: 'كلمة المرور غير صحيحة' });
+        }
+
+        // 8) attempt atomic debit from payer (prevents overdraft)
+        const debitResult = await Cash.updateOne(
+            { _id: payer._id, balance: { $gte: amount } },
+            { $inc: { balance: -amount } }
+        );
+
+        if (!debitResult || debitResult.modifiedCount === 0) {
+            const freshPayer = await Cash.findById(payer._id);
+            return res.status(400).json({ success: false, message: `الرصيد غير كافٍ. الرصيد الحالي: ${freshPayer ? freshPayer.balance : 0} ل.س` });
+        }
+
+        // 9) find company and its receiver cash by company.phone
+        const company = await Company.findById(trip.companyId);
+        if (!company) {
+            // refund payer
+            await Cash.updateOne({ _id: payer._id }, { $inc: { balance: amount } });
+            return res.status(404).json({ success: false, message: 'شركة الرحلة غير موجودة' });
+        }
+
+        const receiver = await Cash.findOne({ phone: company.phone });
+        if (!receiver) {
+            // refund payer
+            await Cash.updateOne({ _id: payer._id }, { $inc: { balance: amount } });
+            return res.status(400).json({ success: false, message: 'Company wallet is not configured.' });
+        }
+
+        // 10) credit receiver
+        await Cash.updateOne({ _id: receiver._id }, { $inc: { balance: amount } });
+
+        // 11) final availability re-check (to avoid race) BEFORE creating booking
+        const conflicting = await Booking.findOne({
+            tripId: trip._id,
+            paymentStatus: { $ne: 'Cancelled' },
+            'selectedSeats.seatNumber': { $in: seatNumbers }
+        });
+
+        if (conflicting) {
+            // refund payer and debit receiver
+            try {
+                await Cash.updateOne({ _id: payer._id }, { $inc: { balance: amount } });
+                await Cash.updateOne({ _id: receiver._id }, { $inc: { balance: -amount } });
+            } catch (refundErr) {
+                console.error('Refund failed after seat conflict:', refundErr);
+            }
+            return res.status(400).json({ success: false, message: 'بعض المقاعد أصبحت محجوزة أثناء المعاملة. حاول مرة أخرى.' });
+        }
+
+        // 12) create payment record
+        const payment = new Payment({
+            fromCash: payer._id,
+            toCash: receiver._id,
+            amount,
+            tripId: trip._id,
+            status: 'Completed',
+            note: `Payment by ${payer.phone} for trip ${trip._id}`
+        });
+        await payment.save();
+
+        // 13) create booking and link payment
+        const booking = new Booking({
+            userId,
+            tripId: trip._id,
+            companyId: trip.companyId,
+            selectedSeats,
+            totalPrice: amount,
+            paymentStatus: 'Paid',
+            paymentId: payment._id
+        });
+        await booking.save();
+
+        // 14) link bookingId -> payment
+        payment.bookingId = booking._id;
+        await payment.save();
+
+        // 15) fetch updated payer balance
+        const updatedPayer = await Cash.findById(payer._id);
+
+        return res.status(201).json({
+            success: true,
+            message: 'تم الدفع وإنشاء الحجز بنجاح',
+            booking,
+            payment,
+            accountBalance: updatedPayer ? updatedPayer.balance : null
+        });
+
+    } catch (error) {
+        console.error('Error in createBookingWithPayment:', error);
+        return res.status(500).json({ success: false, message: 'حدث خطأ داخلي' });
+    }
+};
+
 exports.getBookedSeats = async (req, res) => {
     try {
         const { tripId } = req.params;
@@ -115,7 +278,7 @@ exports.getBookedSeats = async (req, res) => {
 };
 exports.getMyBookings = async (req, res) => {
     try {
-        const userId = req.user._id;
+        const userId = req.user?.id || req.user?._id;
         
         const bookings = await Booking.find({ userId })
             .populate({
@@ -128,7 +291,6 @@ exports.getMyBookings = async (req, res) => {
             })
             .sort({ createdAt: -1 });
         
-        // تنسيق البيانات للواجهة
         const formattedBookings = bookings.map(booking => ({
             _id: booking._id,
             bookingDate: booking.bookingDate,
@@ -165,14 +327,12 @@ exports.getMyBookings = async (req, res) => {
     }
 };
 
-// @desc    جلب حجوزات مستخدم معين (للاستخدام في صفحة /user/:id/mybookings)
 // @route   GET /api/bookings/user/:userId
 // @access  Private (Customer أو Admin)
 exports.getUserBookings = async (req, res) => {
     try {
         const { userId } = req.params;
         
-        // التحقق من الصلاحية: المستخدم يمكنه رؤية حجوزاته فقط، أو الأدمن يمكنه رؤية الكل
         if (req.user.role !== 'Admin' && req.user.id !== userId) {
             return res.status(403).json({
                 success: false,
@@ -227,9 +387,7 @@ exports.getUserBookings = async (req, res) => {
     }
 };
 
-// @desc    جلب تفاصيل حجز واحد
 // @route   GET /api/bookings/:bookingId
-// @access  Private (Customer يمكنه رؤية حجزه فقط)
 exports.getBookingDetails = async (req, res) => {
     try {
         const { bookingId } = req.params;
@@ -252,7 +410,6 @@ exports.getBookingDetails = async (req, res) => {
             });
         }
         
-        // التحقق من الصلاحية
         if (req.user.role !== 'Admin' && req.user._id.toString() !== booking.userId._id.toString()) {
             return res.status(403).json({
                 success: false,
@@ -312,9 +469,7 @@ exports.getBookingDetails = async (req, res) => {
     }
 };
 
-// @desc    إلغاء حجز
 // @route   PATCH /api/bookings/:bookingId/cancel
-// @access  Private (Customer يمكنه إلغاء حجزه فقط)
 exports.cancelBooking = async (req, res) => {
     try {
         const { bookingId } = req.params;

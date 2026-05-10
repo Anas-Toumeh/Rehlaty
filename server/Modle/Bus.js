@@ -7,7 +7,7 @@ const busSchema = new mongoose.Schema({
     capacity: { type: Number, required: true },
     busType: { type: String, enum: ['VIP', 'Normal'], default: 'Normal' },
     features: [String],
-    createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' }, // تتبع من أضاف الباص
+    createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' }, 
     isActive: { type: Boolean, default: true }
 });
 

@@ -1,6 +1,6 @@
 // components/Manager/ManagerSidebar.jsx
 import { useNavigate, useLocation } from "react-router-dom";
-import logo from "../../assets/logo.png"; // استخدم نفس اللوجو أو غيره
+import logo from "../../assets/logo.png"; // Use same or different logo
 
 const ManagerSidebar = ({ closeSidebar }) => {
   const navigate = useNavigate();
@@ -22,7 +22,7 @@ const ManagerSidebar = ({ closeSidebar }) => {
     <aside className="w-80 h-full bg-white flex flex-col shadow-sm h-screen backdrop-blur-md border-l border-gray-100 ">
       {/* Header: Logo & App Name */}
       <div className="p-8 border-b border-gray-50 flex flex-col items-center relative">
-        {/* زر الإغلاق للموبايل */}
+        {/* Close button for mobile */}
         <button
           onClick={closeSidebar}
           className="lg:hidden absolute left-4 top-4 w-8 h-8 rounded-full bg-gray-50 text-gray-400 hover:text-red-500 transition-colors flex items-center justify-center"
@@ -45,7 +45,7 @@ const ManagerSidebar = ({ closeSidebar }) => {
               key={item.path}
               onClick={() => {
                 navigate(item.path);
-                closeSidebar(); // يغلق السايد بار في الموبايل بعد الضغط
+                closeSidebar(); // Close sidebar on mobile after click
               }}
               className={`
                 w-full flex items-center gap-4 px-6 py-4 rounded-2xl font-bold transition-all duration-300 group

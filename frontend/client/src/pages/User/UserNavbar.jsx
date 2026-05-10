@@ -9,7 +9,6 @@ export default function UserNavbar() {
   const location = useLocation();
   const [activeLog, setActiveLog] = useState(false);
   
-  // ✅ الحصول على id المستخدم من localStorage
   const userId = localStorage.getItem('userId') || user?._id;
   
   console.log('User:', user);
@@ -20,12 +19,10 @@ export default function UserNavbar() {
     navigate("/login");
   };
 
-  // ✅ التحقق من المسارات النشطة
   const isActive = (path) => {
     return location.pathname === path;
   };
 
-  // ✅ بناء المسارات الديناميكية مع id المستخدم
   const homeLink = userId ? `/user/${userId}` : '/user/dashboard';
   const myBookingsLink = userId ? `/user/mybookings` : '/user/my-bookings';
 

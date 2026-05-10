@@ -3,10 +3,10 @@ const router = express.Router();
 const userController = require('../controllers/userController');
 const {auth} = require('../middleware/auth');
 
-// البحث متاح للكل (بدون تسجيل دخول)
+// Search available for everyone (without login)
 router.get('/search', userController.searchTrips);
 
-// الحجز والملف الشخصي يحتاج تسجيل دخول
+// Booking and profile require login
 router.post('/book',auth,userController.bookTrip);
 router.get('/my-bookings', auth, userController.getMyBookings);
 router.get('/profile', auth, userController.getProfile);

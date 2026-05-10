@@ -24,7 +24,7 @@ const TripSchema = new mongoose.Schema({
 
     price: { type: Number, required: true },
     
-    totalSeats: { type: Number, default: 0 }, // يتم تعبئتها من bus.capacity
+    totalSeats: { type: Number, default: 0 }, // Filled from bus.capacity
     
     status: {
         type: String,
@@ -44,20 +44,20 @@ const TripSchema = new mongoose.Schema({
     toObject: { virtuals: true }
 });
 
-// ✅ العلاقة مع الحجوزات
+// ✅ Relationship with bookings
 TripSchema.virtual('bookings', {
     ref: 'Booking',
     localField: '_id',
     foreignField: 'tripId'
 });
 
-// ✅ حساب عدد المقاعد المحجوزة
+// ✅ Calculate the number of booked seats
 TripSchema.virtual('bookedSeatsCount').get(function() {
     if (!this.bookings || this.bookings.length === 0) return 0;
     
     let totalBookedSeats = 0;
     for (const booking of this.bookings) {
-        // إذا كان الحجز غير ملغي، نحسب المقاعد
+        // If the booking is not cancelled, count the seats
         if (booking.paymentStatus !== 'Cancelled') {
             totalBookedSeats += booking.selectedSeats?.length || 0;
         }
@@ -65,14 +65,14 @@ TripSchema.virtual('bookedSeatsCount').get(function() {
     return totalBookedSeats;
 });
 
-// ✅ حساب عدد المقاعد المتاحة
+// ✅ Calculate the number of available seats
 TripSchema.virtual('availableSeatsCount').get(function() {
     const booked = this.bookedSeatsCount || 0;
     const total = this.totalSeats || 0;
     return total - booked;
 });
 
-// ✅ دمج المسار
+// ✅ Combine the route
 TripSchema.virtual('route').get(function() {
     return `${this.from} → ${this.to}`;
 });

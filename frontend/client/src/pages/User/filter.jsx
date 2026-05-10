@@ -8,9 +8,10 @@ const Filter = ({
   onFilterChange, 
   onApplyFilters,
   initialMinPrice = 0, 
-  initialMaxPrice = 75000,
+  initialMaxPrice = 150000,
   initialTimeFilter = "",
-  initialCompanyFilter = ""
+  initialCompanyFilter = "",
+  companies = []
 }) => {
   const [minPrice, setMinPrice] = useState(initialMinPrice);
   const [maxPrice, setMaxPrice] = useState(initialMaxPrice);
@@ -51,21 +52,19 @@ const Filter = ({
 
   const resetFilters = () => {
     setMinPrice(0);
-    setMaxPrice(75000);
+    setMaxPrice(150000);
     setSelectedTime("");
     setSelectedCompany("");
     
-    // إرسال الفلاتر المعاد تعيينها
     if (onFilterChange) {
       onFilterChange({
         minPrice: 0,
-        maxPrice: 75000,
+        maxPrice: 150000,
         timeFilter: "",
         companyFilter: ""
       });
     }
     
-    // تطبيق الفلاتر فوراً
     setTimeout(() => {
       if (onApplyFilters) {
         onApplyFilters();
@@ -80,17 +79,14 @@ const Filter = ({
     { id: "night", label: "10 مساءً 2 - مساءً ", icon: icon2, value: "night" }
   ];
 
-  const companies = [
-    { id: 1, name: "شركة القدموس للنقل و الشحن" },
-    { id: 2, name: "شركة السريع" },
-    { id: 3, name: "شركة الأمان" },
-    { id: 4, name: "شركة الفاخرة" }
-  ];
 
   return (
-    <div className="rounded-2xl bg-gray-50 shadow-lg p-5 font-Tajawal">
-      <div className="border-b-2 pb-3 mb-4">
-        <h4 className="text-2xl font-bold text-right">فلتر</h4>
+    <div className="rounded-2xl bg-white shadow-lg p-6 font-Tajawal border border-gray-100">
+      <div className="border-b-2 border-gray-200 pb-4 mb-6">
+        <h4 className="text-2xl font-bold text-right flex items-center gap-2">
+          <i className="fas fa-sliders-h text-[#3E92CC]"></i>
+          فلتر
+        </h4>
       </div>
 
       {/* نطاق السعر */}
@@ -106,7 +102,7 @@ const Filter = ({
           <input
             type="range"
             min={0}
-            max={75000}
+            max={150000}
             value={minPrice}
             onChange={handleMinChange}
             className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-[#3E92CC]"
@@ -118,7 +114,7 @@ const Filter = ({
           <input
             type="range"
             min={0}
-            max={75000}
+            max={150000}
             value={maxPrice}
             onChange={handleMaxChange}
             className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-[#3E92CC]"
@@ -147,22 +143,36 @@ const Filter = ({
 
       {/* الشركة */}
       <div className="mb-6">
-        <h4 className="text-xl font-bold text-right mb-3">الشركة</h4>
-        <div className="space-y-2">
-          {companies.map((company) => (
-            <div
-              key={company.id}
-              onClick={() => setSelectedCompany(selectedCompany === company.name ? "" : company.name)}
-              className={`flex items-center justify-between p-3 rounded-lg cursor-pointer transition-all duration-200 hover:bg-gray-200 ${
-                selectedCompany === company.name ? 'bg-gray-200' : ''
-              }`}
-            >
-              <div className={`w-5 h-5 rounded-full border-2 ${
-                selectedCompany === company.name ? 'bg-[#3E92CC] border-[#3E92CC]' : 'border-gray-400'
-              }`}></div>
-              <p className="text-right text-lg">{company.name}</p>
-            </div>
-          ))}
+        <h4 className="text-xl font-bold text-right mb-4">الشركة</h4>
+        <div className="space-y-2 max-h-64 overflow-y-auto pr-1">
+          {companies && companies.length > 0 ? (
+            companies.map((company) => {
+              const compId = String(company._id || company.id || company.companyId || company.companyId);
+              const compName = company.name || company.companyName || '';
+              return (
+                <label
+                  key={compId}
+                  className={`flex items-start justify-between p-3 rounded-lg cursor-pointer transition-all duration-200 border-2 ${
+                    selectedCompany === compId 
+                      ? 'bg-blue-50 border-[#3E92CC] shadow-sm' 
+                      : 'border-gray-200 hover:border-gray-300'
+                  }`}
+                >
+                  <input
+                    type="radio"
+                    name="company"
+                    value={compId}
+                    checked={selectedCompany === compId}
+                    onChange={() => setSelectedCompany(selectedCompany === compId ? "" : compId)}
+                    className="mt-1 flex-shrink-0 cursor-pointer w-5 h-5 accent-[#3E92CC]"
+                  />
+                  <span className="text-right text-base flex-1 mr-3 break-words line-clamp-2 font-medium text-gray-700">{compName}</span>
+                </label>
+              );
+            })
+          ) : (
+            <p className="text-sm text-gray-400 text-right py-2">لا توجد شركات</p>
+          )}
         </div>
       </div>
 

@@ -43,21 +43,21 @@ const Login = () => {
   };
 
   return (
-    // الخلفية الخارجية: رمادي فاتح جداً (Neutral 100) يعطي راحة للعين
+    // Outer background: very light gray (Neutral 100) for eye comfort
     <div className="min-h-screen bg-neutral-100 flex items-center justify-center p-4">
       
-      {/* الكارت الأساسي الأبيض مع الإطار السفلي الناعم */}
+      {/* Main white card with soft bottom border */}
       <div className="max-w-md w-full bg-white rounded-2xl shadow-xl overflow-hidden border-b-[6px] border-b-[#1D4ED8] transition-all duration-300">
         
         <div className="p-10">
-          {/* قسم الشعار */}
+          {/* Logo section */}
           <div className="flex flex-col items-center mb-8">
             <img 
               src={logo} 
               alt="رحلتي - Bus" 
               className="h-20 w-auto mb-6"
             />
-            {/* خط فاصل ناعم جداً */}
+            {/* Very soft divider line */}
             <div className="h-[1px] w-full bg-gradient-to-r from-transparent via-gray-200 to-transparent"></div>
           </div>
 

@@ -26,19 +26,19 @@ app.use('/api/admin', adminRoutes);
 app.use('/api/company', companyRoutes);
 app.use('/api/user', userRoutes);
 app.use('/api/trips', tripRoutes);
-app.use('/api/bookings', bookingRoutes); // إضافة مسارات الحجز
-app.use('/api/cash', cashRoutes); // إضافة مسارات الدفع النقدي
-// الاتصال بقاعدة البيانات
+app.use('/api/bookings', bookingRoutes); // Add booking routes
+app.use('/api/cash', cashRoutes); // Add cash payment routes
+// Connect to the database
 mongoose.connect(process.env.MONGO_URI)
-  .then(() => console.log("تم الاتصال بـ MongoDB بنجاح"))
-  .catch((err) => console.log("فشل الاتصال:", err));
+  .then(() => console.log("Connected to MongoDB successfully"))
+  .catch((err) => console.log("Connection failed:", err));
 
-// مسار تجريبي
+// Test route
 app.get('/', (req, res) => {
-  res.send("السيرفر يعمل بنجاح!");
+  res.send("Server is running successfully!");
 });
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
-  console.log(`السيرفر يعمل على المنفذ: ${PORT}`);
+  console.log(`Server is running on port: ${PORT}`);
 });

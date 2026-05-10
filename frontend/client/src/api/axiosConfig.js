@@ -1,19 +1,19 @@
 import axios from 'axios';
 
-// 1. إنشاء نسخة مخصصة من Axios
+// 1. Create a custom instance of Axios
 const API = axios.create({
-    baseURL: 'http://localhost:5000/api', // تأكد أن هذا هو رابط الـ Backend الخاص بك
+    baseURL: 'http://localhost:5000/api', // Make sure this is your Backend URL
     headers: {
         'Content-Type': 'application/json'
     },
 });
 
-// 2. إعداد "Interceptor" لإضافة التوكن تلقائياً لكل طلب
+// 2. Setup Interceptor to automatically add token to each request
 API.interceptors.request.use(
     (config) => {
-        const token = localStorage.getItem('token'); // جلب التوكن الذي حفظناه عند تسجيل الدخول
+        const token = localStorage.getItem('token'); // Retrieve the token saved at login
         if (token) {
-            config.headers['x-auth-token'] = token; // وضعه في الهيدر كما يتوقع الباكيند
+            config.headers['x-auth-token'] = token; // Add it to the header as expected by the backend
         }
         return config;
     },
@@ -22,12 +22,12 @@ API.interceptors.request.use(
     }
 );
 
-// 3. معالجة الأخطاء الشائعة (مثل انتهاء صلاحية التوكن)
+// 3. Handle common errors (such as token expiration)
 API.interceptors.response.use(
     (response) => response,
     (error) => {
         if (error.response && error.response.status === 401) {
-            // إذا كان التوكن غير صالح، وجه المستخدم لصفحة تسجيل الدخول
+            // If the token is invalid, redirect the user to the login page
             localStorage.clear();
             window.location.href = '/login';
         }

@@ -5,10 +5,8 @@ const Booking = require("../Modle/Booking");
 const bcrypt = require("bcryptjs");
 
 
-// @desc    جلب جميع المستخدمين لشركة المدير (موظفين + سائقين)
 // @route   GET /api/users
 // @access  Private (CompanyManager, Admin)
-// @desc    جلب جميع المستخدمين لشركة المدير (موظفين + سائقين)
 // @route   GET /api/users
 // @access  Private (CompanyManager, Admin)
 exports.getUsers = async (req, res) => {
@@ -16,35 +14,27 @@ exports.getUsers = async (req, res) => {
         const {search,role, isActive } = req.query;
         console.log(role);
         
-        console.log('📋 Query params:', { search, role, isActive }); // للتأكد
         
-        // بناء استعلام البحث
         let query = {};
         
-        // إذا كان المستخدم مدير شركة، نجلب فقط مستخدمين نفس الشركة
         if (req.user.role === 'CompanyManager') {
             query.companyId = req.user.companyId;
         }
         
-        // ✅ إصلاح: معالجة الدور (role) سواء كان مفرداً أو مصفوفة
         if (role && role !== 'all') {
             if (Array.isArray(role)) {
-                // إذا كانت المصفوفة تحتوي على قيم متعددة
                 query.role = { $in: role };
                 console.log('✅ Multiple roles filter:', role);
             } else {
-                // إذا كانت قيمة مفردة
                 query.role = role;
                 console.log('✅ Single role filter:', role);
             }
         }
         
-        // فلتر حسب النشاط
         if (isActive !== undefined && isActive !== 'all') {
             query.isActive = isActive === 'true';
         }
         
-        // البحث النصي
         if (search) {
             query.$or = [
                 { fullName: { $regex: search, $options: 'i' } },
@@ -56,7 +46,7 @@ exports.getUsers = async (req, res) => {
         console.log('📋 Final query:', JSON.stringify(query, null, 2));
         
         const users = await User.find(query)
-            .select('-password') // لا نرسل كلمة المرور
+            .select('-password') 
             .populate('companyId', 'name')
             .sort({ createdAt: -1 });
         
@@ -78,7 +68,6 @@ exports.getUsers = async (req, res) => {
     }
 };
 
-// @desc    جلب مستخدم واحد بواسطة ID
 // @route   GET /api/users/:id
 // @access  Private (CompanyManager, Admin)
 exports.getUserById = async (req, res) => {
@@ -87,7 +76,6 @@ exports.getUserById = async (req, res) => {
         
         let query = { _id: id };
         
-        // إذا كان المستخدم مدير شركة، نتحقق من أن المستخدم ينتمي لنفس الشركة
         if (req.user.role === 'CompanyManager') {
             query.companyId = req.user.companyId;
         }
@@ -116,14 +104,12 @@ exports.getUserById = async (req, res) => {
     }
 };
 
-// @desc    إنشاء مستخدم جديد (موظف أو سائق)
 // @route   POST /api/users/register
 // @access  Private (CompanyManager, Admin)
 exports.createUser = async (req, res) => {
     try {
         const { fullName, email, phone, password, role, companyId } = req.body;
         
-        // التحقق من وجود البريد الإلكتروني
         const existingUser = await User.findOne({ email });
         if (existingUser) {
             return res.status(400).json({
@@ -132,11 +118,9 @@ exports.createUser = async (req, res) => {
             });
         }
         
-        // تشفير كلمة المرور
         const salt = await bcrypt.genSalt(10);
         const hashedPassword = await bcrypt.hash(password, salt);
         
-        // تحديد companyId
         let userCompanyId = companyId;
         if (req.user.role === 'CompanyManager') {
             userCompanyId = req.user.companyId;
@@ -155,7 +139,6 @@ exports.createUser = async (req, res) => {
         
         await user.save();
         
-        // إرجاع البيانات بدون كلمة المرور
         const userResponse = user.toObject();
         delete userResponse.password;
         
@@ -174,7 +157,6 @@ exports.createUser = async (req, res) => {
     }
 };
 
-// @desc    تحديث مستخدم
 // @route   PUT /api/users/:id
 // @access  Private (CompanyManager, Admin)
 exports.updateUser = async (req, res) => {
@@ -182,7 +164,6 @@ exports.updateUser = async (req, res) => {
         const { id } = req.params;
         const { fullName, email, phone, role, isActive, password } = req.body;
         
-        // البحث عن المستخدم
         let query = { _id: id };
         if (req.user.role === 'CompanyManager') {
             query.companyId = req.user.companyId;
@@ -197,7 +178,6 @@ exports.updateUser = async (req, res) => {
             });
         }
         
-        // منع تغيير دور المستخدم إذا كان هو نفسه (المدير لا يغير دوره بنفسه)
         if (id === req.user._id && role && role !== user.role) {
             return res.status(400).json({
                 success: false,
@@ -205,7 +185,6 @@ exports.updateUser = async (req, res) => {
             });
         }
         
-        // التحقق من عدم وجود بريد إلكتروني مكرر
         if (email && email !== user.email) {
             const existingUser = await User.findOne({ email, _id: { $ne: id } });
             if (existingUser) {
@@ -217,13 +196,11 @@ exports.updateUser = async (req, res) => {
             user.email = email;
         }
         
-        // تحديث الحقول
         if (fullName) user.fullName = fullName;
         if (phone) user.phone = phone;
         if (role && id !== req.user._id) user.role = role;
         if (isActive !== undefined) user.isActive = isActive;
         
-        // تحديث كلمة المرور إذا تم إرسالها
         if (password && password.trim() !== '') {
             const salt = await bcrypt.genSalt(10);
             user.password = await bcrypt.hash(password, salt);
@@ -231,7 +208,6 @@ exports.updateUser = async (req, res) => {
         
         await user.save();
         
-        // إرجاع البيانات بدون كلمة المرور
         const userResponse = user.toObject();
         delete userResponse.password;
         
@@ -250,14 +226,12 @@ exports.updateUser = async (req, res) => {
     }
 };
 
-// @desc    حذف مستخدم
 // @route   DELETE /api/users/:id
 // @access  Private (CompanyManager, Admin)
 exports.deleteUser = async (req, res) => {
     try {
         const { id } = req.params;
         
-        // منع حذف المستخدم نفسه
         if (id === req.user._id) {
             return res.status(400).json({
                 success: false,
@@ -265,7 +239,6 @@ exports.deleteUser = async (req, res) => {
             });
         }
         
-        // البحث عن المستخدم
         let query = { _id: id };
         if (req.user.role === 'CompanyManager') {
             query.companyId = req.user.companyId;
@@ -280,7 +253,6 @@ exports.deleteUser = async (req, res) => {
             });
         }
         
-        // إذا كان المستخدم سائق، نتحقق من وجود رحلات مرتبطة به
         if (user.role === 'Driver') {
             const relatedTrips = await Trip.find({
                 driverId: id,
@@ -312,7 +284,6 @@ exports.deleteUser = async (req, res) => {
     }
 };
 
-// @desc    تبديل حالة المستخدم (نشط/غير نشط)
 // @route   PATCH /api/users/:id/toggle-status
 // @access  Private (CompanyManager, Admin)
 exports.toggleUserStatus = async (req, res) => {
@@ -320,7 +291,6 @@ exports.toggleUserStatus = async (req, res) => {
         const { id } = req.params;
         const { isActive } = req.body;
         
-        // منع تعطيل المستخدم نفسه
         if (id === req.user._id && isActive === false) {
             return res.status(400).json({
                 success: false,
@@ -328,7 +298,6 @@ exports.toggleUserStatus = async (req, res) => {
             });
         }
         
-        // البحث عن المستخدم
         let query = { _id: id };
         if (req.user.role === 'CompanyManager') {
             query.companyId = req.user.companyId;
@@ -343,7 +312,6 @@ exports.toggleUserStatus = async (req, res) => {
             });
         }
         
-        // إذا كنا نريد تعطيل سائق، نتحقق من عدم وجود رحلات مستقبلية
         if (user.role === 'Driver' && isActive === false) {
             const futureTrips = await Trip.find({
                 driverId: id,
@@ -381,7 +349,6 @@ exports.toggleUserStatus = async (req, res) => {
     }
 };
 
-// @desc    جلب إحصائيات المستخدمين
 // @route   GET /api/users/stats
 // @access  Private (CompanyManager, Admin)
 exports.getUserStats = async (req, res) => {
@@ -421,7 +388,6 @@ exports.getUserStats = async (req, res) => {
     }
 };
 
-// @desc    جلب السائقين المتاحين (لإضافة الرحلات)
 // @route   GET /api/users/available-drivers
 // @access  Private (CompanyManager)
 exports.getAvailableDrivers = async (req, res) => {
@@ -454,7 +420,6 @@ exports.getAvailableDrivers = async (req, res) => {
             occupiedDriverIds = occupiedDrivers.filter(id => id !== null).map(id => id.toString());
         }
         
-        // إذا كان هناك وقت محدد، نستثني السائقين المشغولين
         if (departureTime && occupiedDriverIds.length > 0) {
             query._id = { $nin: occupiedDriverIds };
         }
@@ -463,7 +428,6 @@ exports.getAvailableDrivers = async (req, res) => {
             .select('fullName phone email')
             .sort({ fullName: 1 });
         
-        // تنسيق البيانات للواجهة
         const formattedDrivers = drivers.map(driver => ({
             _id: driver._id,
             name: driver.fullName,
@@ -494,15 +458,12 @@ exports.getBuses = async (req, res) => {
         const { search, isActive } = req.query;
         console.log(req.user);
         
-        // بناء استعلام البحث
         let query = { companyId: req.user.companyId };
         
-        // فلتر حسب النشاط
         if (isActive !== undefined && isActive !== 'all') {
             query.isActive = isActive === 'true';
         }
         
-        // البحث النصي
         if (search) {
             query.$or = [
                 { busNumber: { $regex: search, $options: 'i' } },
@@ -530,7 +491,6 @@ exports.getBuses = async (req, res) => {
     }
 };
 
-// @desc    جلب باص واحد بواسطة ID
 // @route   GET /api/buses/:id
 // @access  Private (CompanyManager)
 exports.getBusById = async (req, res) => {
@@ -564,14 +524,12 @@ exports.getBusById = async (req, res) => {
     }
 };
 
-// @desc    إنشاء باص جديد
 // @route   POST /api/buses
 // @access  Private (CompanyManager)
 exports.createBus = async (req, res) => {
     try {
         const { busNumber, plateNumber, capacity, busType, features, isActive } = req.body;
         
-        // التحقق من عدم وجود باص بنفس الرقم لنفس الشركة
         const existingBus = await Bus.findOne({
             companyId: req.user.companyId,
             $or: [
@@ -615,7 +573,6 @@ exports.createBus = async (req, res) => {
     }
 };
 
-// @desc    تحديث باص
 // @route   PUT /api/buses/:id
 // @access  Private (CompanyManager)
 exports.updateBus = async (req, res) => {
@@ -623,7 +580,6 @@ exports.updateBus = async (req, res) => {
         const { id } = req.params;
         const { busNumber, plateNumber, capacity, busType, features, isActive } = req.body;
         
-        // البحث عن الباص
         const bus = await Bus.findOne({
             _id: id,
             companyId: req.user.companyId
@@ -636,7 +592,6 @@ exports.updateBus = async (req, res) => {
             });
         }
         
-        // التحقق من عدم وجود باص آخر بنفس الرقم أو اللوحة
         const existingBus = await Bus.findOne({
             companyId: req.user.companyId,
             _id: { $ne: id },
@@ -653,7 +608,6 @@ exports.updateBus = async (req, res) => {
             });
         }
         
-        // تحديث الحقول
         bus.busNumber = busNumber || bus.busNumber;
         bus.plateNumber = plateNumber || bus.plateNumber;
         bus.capacity = capacity !== undefined ? Number(capacity) : bus.capacity;
@@ -678,7 +632,6 @@ exports.updateBus = async (req, res) => {
     }
 };
 
-// @desc    حذف باص
 // @route   DELETE /api/buses/:id
 // @access  Private (CompanyManager)
 exports.deleteBus = async (req, res) => {
@@ -697,7 +650,6 @@ exports.deleteBus = async (req, res) => {
             });
         }
         
-        // التحقق من وجود رحلات مرتبطة بهذا الباص
         const relatedTrips = await Trip.find({
             busId: id,
             status: { $in: ['Scheduled', 'OnWay'] }
@@ -727,7 +679,6 @@ exports.deleteBus = async (req, res) => {
     }
 };
 
-// @desc    تبديل حالة الباص (نشط/غير نشط)
 // @route   PATCH /api/buses/:id/toggle-status
 // @access  Private (CompanyManager)
 exports.toggleBusStatus = async (req, res) => {
@@ -747,7 +698,6 @@ exports.toggleBusStatus = async (req, res) => {
             });
         }
         
-        // إذا كنا نريد تعطيل الباص، نتحقق من عدم وجود رحلات مستقبلية
         if (isActive === false) {
             const futureTrips = await Trip.find({
                 busId: id,
@@ -781,7 +731,6 @@ exports.toggleBusStatus = async (req, res) => {
     }
 };
 
-// @desc    جلب إحصائيات الباصات
 // @route   GET /api/buses/stats
 // @access  Private (CompanyManager)
 exports.getBusStats = async (req, res) => {
@@ -824,7 +773,6 @@ exports.getBusStats = async (req, res) => {
     }
 };
 
-// @desc    جلب الباصات المتاحة (للاستخدام في إضافة الرحلات)
 // @route   GET /api/buses/available
 // @access  Private (CompanyManager)
 exports.getAvailableBuses = async (req, res) => {
@@ -854,7 +802,6 @@ exports.getAvailableBuses = async (req, res) => {
             occupiedBusIds = occupiedBuses.filter(id => id !== null).map(id => id.toString());
         }
         
-        // إذا كان هناك وقت محدد، نستثني الباصات المشغولة
         if (departureTime && occupiedBusIds.length > 0) {
             query._id = { $nin: occupiedBusIds };
         }
@@ -881,7 +828,6 @@ exports.getAvailableBuses = async (req, res) => {
 
 
 
-// تحديث حالة الرحلة (بدء/إنهاء)
 exports.updateStatus = async (req, res) => {
     try {
         const { id } = req.params;
@@ -896,7 +842,6 @@ exports.updateStatus = async (req, res) => {
 
 
 
-// @desc    جلب إحصائيات الرحلات العامة
 // @route   GET /api/reports/trip-stats
 // @access  Private (CompanyManager, Admin)
 exports.getTripStats = async (req, res) => {
@@ -907,19 +852,15 @@ exports.getTripStats = async (req, res) => {
             query.companyId = req.user.companyId;
         }
         
-        // جلب جميع الرحلات
         const trips = await Trip.find(query);
         
-        // حساب إحصائيات الرحلات
         const completedTrips = trips.filter(t => t.status === 'Completed').length;
         const scheduledTrips = trips.filter(t => t.status === 'Scheduled').length;
         const ongoingTrips = trips.filter(t => t.status === 'OnWay').length;
         const cancelledTrips = trips.filter(t => t.status === 'Cancelled').length;
         
-        // جلب جميع الحجوزات
         const bookingsQuery = {};
         if (req.user.role === 'CompanyManager') {
-            // جلب الحجوزات المرتبطة برحلات الشركة
             const companyTrips = await Trip.find({ companyId: req.user.companyId }).select('_id');
             const tripIds = companyTrips.map(t => t._id);
             bookingsQuery.tripId = { $in: tripIds };
@@ -927,10 +868,8 @@ exports.getTripStats = async (req, res) => {
         
         const bookings = await Booking.find(bookingsQuery);
         
-        // حساب إجمالي الإيرادات
         const totalRevenue = bookings.reduce((sum, booking) => sum + (booking.totalPrice || 0), 0);
         
-        // حساب متوسط سعر التذكرة
         const averageTicketPrice = bookings.length > 0 ? totalRevenue / bookings.length : 0;
         
         res.status(200).json({
@@ -957,7 +896,6 @@ exports.getTripStats = async (req, res) => {
     }
 };
 
-// @desc    جلب التقرير الشهري
 // @route   GET /api/reports/monthly
 // @access  Private (CompanyManager, Admin)
 exports.getMonthlyReport = async (req, res) => {
@@ -1039,7 +977,6 @@ exports.getMonthlyReport = async (req, res) => {
     }
 };
 
-// @desc    جلب التقرير التفصيلي
 // @route   GET /api/reports/detailed
 // @access  Private (CompanyManager, Admin)
 exports.getDetailedReport = async (req, res) => {
@@ -1184,7 +1121,6 @@ exports.getDetailedReport = async (req, res) => {
     }
 };
 
-// @desc    تصدير التقرير (PDF/Excel)
 // @route   GET /api/reports/export/:format
 // @access  Private (CompanyManager, Admin)
 exports.exportReport = async (req, res) => {
@@ -1279,7 +1215,6 @@ exports.exportReport = async (req, res) => {
     }
 };
 
-// @desc    جلب إحصائيات الباصات
 // @route   GET /api/reports/bus-stats
 // @access  Private (CompanyManager, Admin)
 exports.getBusStats = async (req, res) => {

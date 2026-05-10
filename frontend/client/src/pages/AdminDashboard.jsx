@@ -6,7 +6,7 @@ const AdminDashboard = () => {
   const [companies, setCompanies] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [isManagerModalOpen, setIsManagerModalOpen] = useState(false); // مودال المدير
+  const [isManagerModalOpen, setIsManagerModalOpen] = useState(false); // Manager modal
   const [editingCompany, setEditingCompany] = useState(null);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [toast, setToast] = useState(null);
@@ -15,7 +15,7 @@ const AdminDashboard = () => {
     name: '', phone: '', address: '', logo: null, isActive: true 
   });
 
-  // حالة بيانات المدير الجديد
+  // New manager data state
   const [managerData, setManagerData] = useState({
     fullName: '', email: '', password: '', phone: '', companyId: ''
   });
@@ -39,7 +39,7 @@ const AdminDashboard = () => {
 
   useEffect(() => { fetchCompanies(); }, []);
 
-  // دالة إرسال بيانات المدير
+  // Manager data submission function
   const handleManagerSubmit = async (e) => {
     e.preventDefault();
     try {
@@ -47,7 +47,7 @@ const AdminDashboard = () => {
       showToast('تم تعيين المدير بنجاح');
       setIsManagerModalOpen(false);
       setManagerData({ fullName: '', email: '', password: '', phone: '', companyId: '' });
-      fetchCompanies(); // لتحديث البيانات
+      fetchCompanies(); // Refresh data
     } catch (err) {
       showToast(err.response?.data?.message || 'خطأ في إنشاء المدير', 'error');
     }
@@ -88,7 +88,7 @@ const AdminDashboard = () => {
     } catch (err) { showToast('خطأ في تغيير الحالة', 'error'); }
   };
 
-  // تصفية الشركات التي ليس لها مدير (نفترض أن السيرفر يرجع حقل manager)
+  // Filter companies that don't have a manager (assuming server returns manager field)
   const companiesWithoutManager = companies.filter(c => !c.managerId);
 
   return (
@@ -195,10 +195,10 @@ const AdminDashboard = () => {
         </div>
       </div>
 
-      {/* --- مودال إضافة شركة (الأصلي) --- */}
+      {/* --- Company addition modal (original) --- */}
       {isModalOpen && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-md" onClick={() => setIsModalOpen(false)}>
-           {/* محتوى المودال الأصلي */}
+           {/* Original modal content */}
            <div className="bg-white rounded-[2.5rem] w-full max-w-lg shadow-2xl overflow-hidden" onClick={e => e.stopPropagation()}>
              <form onSubmit={handleSubmit} className="p-8 space-y-4 text-right">
                <h2 className="text-2xl font-black mb-6">بيانات الشركة</h2>
@@ -214,7 +214,7 @@ const AdminDashboard = () => {
         </div>
       )}
 
-      {/* --- مودال تعيين مدير جديد (التحديث) --- */}
+      {/* --- Manager assignment modal (Updated) --- */}
       {isManagerModalOpen && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-md" onClick={() => setIsManagerModalOpen(false)}>
           <div className="bg-white rounded-[2.5rem] w-full max-w-lg shadow-2xl overflow-hidden" onClick={e => e.stopPropagation()}>
@@ -224,7 +224,7 @@ const AdminDashboard = () => {
             </div>
             <form onSubmit={handleManagerSubmit} className="p-8 space-y-4 text-right">
               
-              {/* اختيار الشركة */}
+              {/* Company selection */}
               <select 
                 className="w-full p-4 bg-gray-50 border border-gray-200 rounded-2xl outline-none focus:border-amber-500 font-bold"
                 value={managerData.companyId}
@@ -251,7 +251,7 @@ const AdminDashboard = () => {
   );
 };
 
-// مكون الكرت للإحصائيات
+// Stats card component
 const StatCard = ({ title, value, icon, color }) => {
   const colors = {
     blue: "bg-blue-50 text-blue-600",

@@ -17,8 +17,8 @@ const createSuperAdmin = async () => {
         const hashedPassword = await bcrypt.hash("123123123", salt); // كلمة المرور الافتراضية
 
         const admin = new User({
-            fullName: "moaz",
-            email: "admin@system.com",
+            fullName: "Anas",
+            email: "admin@gmail.com.com",
             password: hashedPassword,
             phone: "0000000000",
             role: 'Admin'

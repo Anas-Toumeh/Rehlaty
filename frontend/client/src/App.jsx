@@ -17,8 +17,8 @@ import Register from "./pages/User/Register";
 import User_dashboard from "./pages/User/User_dashboard";
 import Cinform from "./pages/User/cinformTrip";
 import MyBookings from "./pages/User/MyBookings";
-// مكوّن بسيط لحماية المسارات (Protected Route)
-// يمنع الدخول لصفحة الأدمن إلا إذا كان هناك توكن ورتبة الأدمن صحيحة
+// Simple component to protect routes (Protected Route)
+// Prevents access to admin page unless there is a token and correct admin rank
 const ProtectedRoute = ({ children, allowedRole }) => {
   const token = localStorage.getItem("token");
   const role = localStorage.getItem("role");
@@ -33,14 +33,14 @@ function App() {
   return (
     <Router>
       <Routes>
-        {/* المسار الافتراضي يوجه لصفحة تسجيل الدخول */}
+        {/* Default route redirects to login page */}
         <Route path="/" element={<Navigate to="/login" replace />} />
 
-        {/* صفحة تسجيل الدخول */}
+        {/* Login page */}
         <Route path="/login" element={<UserLogin />} />
         <Route path="/AdminLogin" element={<Login />} />
         <Route path="/register" element={<Register />} />
-        {/* مسارات الأدمن المحمية */}
+        {/* Protected admin routes */}
         <Route
           path="/admin-dashboard"
           element={
@@ -100,10 +100,10 @@ function App() {
         <Route path="/user/:id" element={<User_dashboard />}></Route>
         <Route path="/cinformTrip/:tripId" element={<Cinform />}></Route>
         <Route path="/user/myBookings" element={<MyBookings />}></Route>
-        {/* يمكنك إضافة باقي اللوحات هنا لاحقاً بنفس الطريقة */}
+        {/* You can add remaining dashboards here later in the same way */}
         {/* <Route path="/manager-dashboard" element={<ProtectedRoute allowedRole="CompanyManager">...</ProtectedRoute>} /> */}
 
-        {/* مسار للتعامل مع الصفحات غير الموجودة */}
+        {/* Route to handle non-existent pages */}
         <Route
           path="*"
           element={

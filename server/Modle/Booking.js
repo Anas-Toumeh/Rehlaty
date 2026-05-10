@@ -29,6 +29,7 @@ const bookingSchema = new mongoose.Schema({
         enum: ['Pending', 'Paid', 'Cancelled'], 
         default: 'Pending' 
     },
+    paymentId: { type: mongoose.Schema.Types.ObjectId, ref: 'Payment', default: null },
     bookingDate: { type: Date, default: Date.now }
 }, { 
     timestamps: true,

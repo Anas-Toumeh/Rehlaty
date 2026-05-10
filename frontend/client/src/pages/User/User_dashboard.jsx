@@ -11,19 +11,17 @@ const User_dashboard = () => {
   const [trips, setTrips] = useState([]);
   const [loading, setLoading] = useState(true);
   
-  // ✅ الفلاتر النشطة (التي تم تطبيقها)
   const [activeFilters, setActiveFilters] = useState({
     from: '',
     to: '',
     date: '',
     tripType: 'half',
     minPrice: 0,
-    maxPrice: 75000,
+    maxPrice: 150000,
     timeFilter: '',
     companyFilter: ''
   });
   
-  // ✅ الفلاتر المؤقتة للمدخلات (للبحث المباشر)
   const [searchInputs, setSearchInputs] = useState({
     from: '',
     to: '',
@@ -31,15 +29,15 @@ const User_dashboard = () => {
     tripType: 'half'
   });
   
-  // ✅ الفلاتر المؤقتة للـ Filter
   const [tempFilters, setTempFilters] = useState({
     minPrice: 0,
-    maxPrice: 75000,
+    maxPrice: 150000,
     timeFilter: '',
     companyFilter: ''
   });
 
-  // ✅ دالة جلب الرحلات
+  const [companies, setCompanies] = useState([]);
+
   const fetchTrips = useCallback(async (filterParams = {}) => {
     try {
       setLoading(true);
@@ -48,7 +46,23 @@ const User_dashboard = () => {
       const response = await API.get('/user/dashboard', {
         params: filterParams
       });
-      setTrips(response.data.trips || []);
+      const tripsArr = response.data.trips || [];
+      setTrips(tripsArr);
+
+      // Extract unique companies from trips for the filter
+      const comps = [];
+      tripsArr.forEach(trip => {
+        const c = trip.company;
+        if (!c) return;
+        const id = String(c.companyId || c._id || c.id || c.companyId || c.companyId);
+        const name = c.companyName || c.name || '';
+        const logo = c.logo || '';
+        if (!comps.some(x => String(x._id) === id)) {
+          comps.push({ _id: id, name, logo });
+        }
+      });
+      setCompanies(comps);
+
       console.log('Trips fetched:', response.data);
     } catch (error) {
       console.error('Error fetching trips:', error);
@@ -57,7 +71,6 @@ const User_dashboard = () => {
     }
   }, []);
 
-  // ✅ معالجة تغيير المدخلات المباشرة
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setSearchInputs(prev => ({
@@ -66,11 +79,9 @@ const User_dashboard = () => {
     }));
   };
 
-  // ✅ معالجة البحث المباشر
   const handleSearch = (e) => {
     e.preventDefault();
     
-    // بناء الفلاتر من المدخلات المباشرة
     const searchFilters = {
       ...activeFilters,
       from: searchInputs.from,
@@ -83,12 +94,10 @@ const User_dashboard = () => {
     fetchTrips(searchFilters);
   };
 
-  // ✅ تحديث الفلاتر المؤقتة من مكون Filter
   const handleTempFilterChange = useCallback((newFilters) => {
     setTempFilters(prev => ({ ...prev, ...newFilters }));
   }, []);
 
-  // ✅ تطبيق الفلاتر من مكون Filter
   const applyFilters = useCallback(() => {
     const newFilters = {
       ...activeFilters,
@@ -101,7 +110,6 @@ const User_dashboard = () => {
     fetchTrips(newFilters);
   }, [activeFilters, tempFilters, fetchTrips]);
 
-  // ✅ جلب البيانات الأولية
   useEffect(() => {
     fetchTrips();
   }, []);
@@ -196,6 +204,7 @@ const User_dashboard = () => {
         {/* Right Side: Filter */}
         <aside className="w-full lg:w-1/4">
           <Filter 
+            companies={companies}
             onFilterChange={handleTempFilterChange}
             onApplyFilters={applyFilters}
             initialMinPrice={activeFilters.minPrice}

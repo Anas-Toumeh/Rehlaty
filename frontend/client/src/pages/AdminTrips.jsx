@@ -11,11 +11,11 @@ const AdminTrips = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
-  // دالة جلب البيانات من التوابع الأربعة
+  // Function to fetch data from the four endpoints
   const fetchDashboardData = async () => {
     try {
       setLoading(true);
-      // تنفيذ الطلبات بالتوازي لضمان السرعة
+      // Execute requests in parallel to ensure speed
       const [resActive, resCount, resPassengers, resMonthly] = await Promise.all([
         API.get(`/admin/trips/active?search=${searchTerm}`),
         API.get('/admin/trips/active-count'),
@@ -172,7 +172,7 @@ const AdminTrips = () => {
   );
 };
 
-// مكون كرت الإحصائيات (StatCard)
+// StatCard component for statistics
 const StatCard = ({ title, value, icon, color }) => {
   const themes = {
     blue: "bg-blue-600 text-white shadow-blue-200",

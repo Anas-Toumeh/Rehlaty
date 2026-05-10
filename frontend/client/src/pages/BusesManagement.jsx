@@ -18,14 +18,14 @@ const BusesManagement = () => {
   const [buses, setBuses] = useState([]);
   const companyId = localStorage.getItem('companyId');
 
-  // خيارات نوع الباص
+  // Bus type options
   const BUS_TYPES = [
     { value: "VIP", label: "VIP", color: "bg-purple-100 text-purple-700" },
     { value: "Normal", label: "عادي", color: "bg-blue-100 text-blue-700" },
     { value: "Luxury", label: "فاخر", color: "bg-amber-100 text-amber-700" }
   ];
 
-  // خيارات الميزات الإضافية
+  // Additional features options
   const FEATURES_OPTIONS = [
     { value: "مكيف", label: "مكيف", icon: "fa-snowflake" },
     { value: "واي فاي", label: "واي فاي", icon: "fa-wifi" },
@@ -51,7 +51,7 @@ const BusesManagement = () => {
     setTimeout(() => setToast(null), 3000);
   };
 
-  // جلب الباصات
+  // Fetch buses
   const fetchBuses = async () => {
     try {
       setLoading(true);
@@ -67,13 +67,13 @@ const BusesManagement = () => {
       }
     } catch (error) {
       console.error(error);
-      showToast(error.response?.data?.message || "حدث خطأ في تحميل البيانات", "error");
+      showToast(error.response?.data?.message || "Error loading data", "error");
     } finally {
       setLoading(false);
     }
   };
 
-  // إنشاء باص جديد
+  // Create a new bus
   const handleCreateBus = async (e) => {
     e.preventDefault();
     try {
@@ -90,17 +90,17 @@ const BusesManagement = () => {
       const response = await API.post("/company/buses", busData);
       
       if (response.data.success) {
-        showToast("تم إضافة الحافلة بنجاح", "success");
+        showToast("Bus added successfully", "success");
         setIsModalOpen(false);
         resetForm();
         fetchBuses();
       }
     } catch (error) {
-      showToast(error.response?.data?.message || "فشل في إنشاء الحافلة", "error");
+      showToast(error.response?.data?.message || "Failed to create bus", "error");
     }
   };
 
-  // تعديل باص
+  // Update bus
   const handleUpdateBus = async (e) => {
     e.preventDefault();
     try {
@@ -116,7 +116,7 @@ const BusesManagement = () => {
       const response = await API.put(`/company/buses/${editingBusId}`, busData);
       
       if (response.data.success) {
-        showToast("تم تعديل الحافلة بنجاح", "success");
+        showToast("Bus updated successfully", "success");
         setIsModalOpen(false);
         setIsEditMode(false);
         setEditingBusId(null);
@@ -124,26 +124,26 @@ const BusesManagement = () => {
         fetchBuses();
       }
     } catch (error) {
-      showToast(error.response?.data?.message || "فشل في تعديل الحافلة", "error");
+      showToast(error.response?.data?.message || "Failed to update bus", "error");
     }
   };
 
-  // حذف باص
+  // Delete bus
   const handleDelete = async () => {
     try {
       const response = await API.delete(`/company/buses/${busToDelete._id}`);
       
       if (response.data.success) {
-        showToast("تم حذف الحافلة بنجاح", "success");
+        showToast("Bus deleted successfully", "success");
         setShowDeleteConfirm(false);
         fetchBuses();
       }
     } catch (error) {
-      showToast(error.response?.data?.message || "فشل في الحذف", "error");
+      showToast(error.response?.data?.message || "Delete failed", "error");
     }
   };
 
-  // فتح مودال التعديل
+  // Open edit modal
   const openEditModal = async (bus) => {
     setIsEditMode(true);
     setEditingBusId(bus._id);

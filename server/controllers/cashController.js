@@ -2,7 +2,6 @@
 const Cash = require('../Modle/Cash');
 const bcrypt = require('bcryptjs');
 
-// @desc    إنشاء حساب دفع جديد
 // @route   POST /api/cash/register
 exports.registerCashAccount = async (req, res) => {
     try {
@@ -47,7 +46,6 @@ exports.registerCashAccount = async (req, res) => {
     }
 };
 
-// @desc    شحن الرصيد
 // @route   POST /api/cash/recharge
 exports.rechargeBalance = async (req, res) => {
     try {
@@ -90,7 +88,6 @@ exports.rechargeBalance = async (req, res) => {
     }
 };
 
-// @desc    التحقق من الرصيد
 // @route   POST /api/cash/check-balance
 exports. checkBalance = async (req, res) => {
     try {
@@ -128,7 +125,6 @@ exports. checkBalance = async (req, res) => {
     }
 };
 
-// @desc    دفع قيمة حجز
 // @route   POST /api/cash/pay
 exports.payWithCash = async (req, res) => {
     try {
@@ -185,7 +181,6 @@ exports.payWithCash = async (req, res) => {
     }
 };
 
-// @desc    الحصول على معلومات الحساب
 // @route   GET /api/cash/account/:phone
 exports.getAccountInfo = async (req, res) => {
     try {

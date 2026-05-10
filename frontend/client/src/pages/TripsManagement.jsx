@@ -4,7 +4,7 @@ import { useNavigate } from "react-router-dom";
 import ManagerSidebar from "../components/Manager/ManagerSidebar";
 import API from "../api/axiosConfig";
 
-// قائمة المحافظات
+// List of cities
 const CITIES = [
   { value: "دمشق", label: "دمشق" },
   { value: "حلب", label: "حلب" },
@@ -35,12 +35,12 @@ const TripsManagement = () => {
   const companyId = localStorage.getItem('companyId');
   const id = localStorage.getItem('id');
   
-  // موارد متاحة للإضافة
+  // Available resources for adding
   const [availableBuses, setAvailableBuses] = useState([]);
   const [availableDrivers, setAvailableDrivers] = useState([]);
   const [loadingResources, setLoadingResources] = useState(false);
   
-  // تخزين السائق والباص الحالي للرحلة
+  // Store current trip driver and bus
   const [currentTripDetails, setCurrentTripDetails] = useState({
     currentDriverId: null,
     currentDriverName: "",
@@ -65,7 +65,7 @@ const TripsManagement = () => {
     setTimeout(() => setToast(null), 3000);
   };
 
-  // جلب الرحلات
+  // Fetch trips
   const fetchTrips = async () => {
     try {
       setLoading(true);
@@ -108,7 +108,7 @@ const TripsManagement = () => {
     }
   };
 
-  // جلب الموارد المتاحة (لإضافة رحلة جديدة)
+  // Fetch available resources (to add new trip)
   const fetchAvailableResources = async (departureTime, from) => {
     if (!departureTime || !from) {
       return;
@@ -139,7 +139,7 @@ const TripsManagement = () => {
     }
   };
 
-  // ✅ جلب رحلة للتعديل (مع ضمان ظهور السائق والباص الحاليين)
+  // ✅ Fetch trip for editing (ensuring display of current driver and bus)
   const fetchTripForEdit = async (tripId) => {
     try {
       setLoadingResources(true);
@@ -148,12 +148,12 @@ const TripsManagement = () => {
       if (response.data.success) {
         const trip = response.data.trip;
         
-        // تخزين معلومات السائق الحالي
+        // Store current driver information
         const currentDriverId = trip.driverId?._id || null;
         const currentDriverName = trip.driverId?.fullName || trip.driverName || 'غير محدد';
         const currentDriverPhone = trip.driverId?.phone || '';
         
-        // تخزين معلومات الباص الحالي
+        // Store current bus information
         const currentBusId = trip.busId?._id || null;
         const currentBusNumber = trip.busId?.busNumber || trip.busNumber || 'غير محدد';
         const currentBusPlate = trip.busId?.plateNumber || '';
@@ -166,10 +166,10 @@ const TripsManagement = () => {
           currentBusNumber: currentBusNumber
         });
         
-        // ✅ بناء قائمة السائقين - نضيف السائق الحالي أولاً
+        // ✅ Build driver list - add current driver first
         let driversList = [];
         
-        // إضافة السائق الحالي إذا وجد
+        // Add current driver if found
         if (currentDriverId) {
           driversList.push({
             _id: currentDriverId,
@@ -180,7 +180,7 @@ const TripsManagement = () => {
           });
         }
         
-        // محاولة جلب سائقين آخرين
+        // Attempt to fetch other drivers
         try {
           const formattedTime = trip.departureTime ? new Date(trip.departureTime).toISOString() : null;
           const resourcesResponse = await API.get("/trips/available-resources", {
@@ -194,7 +194,7 @@ const TripsManagement = () => {
           if (resourcesResponse.data.success) {
             const otherDrivers = resourcesResponse.data.drivers || [];
             otherDrivers.forEach(driver => {
-              // لا نضيف السائق الحالي مرة أخرى
+              // Don't add the current driver again
               if (driver._id !== currentDriverId) {
                 driversList.push({
                   ...driver,
@@ -208,10 +208,10 @@ const TripsManagement = () => {
           console.log('No other drivers available');
         }
         
-        // ✅ بناء قائمة الباصات - نضيف الباص الحالي أولاً
+        // ✅ Build bus list - add current bus first
         let busesList = [];
         
-        // إضافة الباص الحالي إذا وجد
+        // Add current bus if found
         if (currentBusId) {
           busesList.push({
             _id: currentBusId,
@@ -223,7 +223,7 @@ const TripsManagement = () => {
           });
         }
         
-        // محاولة جلب باصات أخرى
+        // Attempt to fetch other buses
         try {
           const formattedTime = trip.departureTime ? new Date(trip.departureTime).toISOString() : null;
           const resourcesResponse = await API.get("/trips/available-resources", {
@@ -237,7 +237,7 @@ const TripsManagement = () => {
           if (resourcesResponse.data.success) {
             const otherBuses = resourcesResponse.data.buses || [];
             otherBuses.forEach(bus => {
-              // لا نضيف الباص الحالي مرة أخرى
+              // Don't add the current bus again
               if (bus._id !== currentBusId) {
                 busesList.push({
                   ...bus,
@@ -250,11 +250,11 @@ const TripsManagement = () => {
           console.log('No other buses available');
         }
         
-        // تعيين القوائم
+        // Assign lists
         setAvailableDrivers(driversList);
         setAvailableBuses(busesList);
         
-        // تعبئة النموذج بالبيانات الحالية
+        // Fill form with current data
         setFormData({
           from: trip.from || "",
           to: trip.to || "",
@@ -275,7 +275,7 @@ const TripsManagement = () => {
     }
   };
 
-  // تحديث حالة الرحلة
+  // Update trip status
   const updateTripStatus = async (tripId, newStatus) => {
     try {
       const response = await API.patch(`/company/${tripId}/status`, { 
@@ -295,7 +295,7 @@ const TripsManagement = () => {
     }
   };
 
-  // إنشاء رحلة جديدة
+  // Create new trip
   const handleCreateTrip = async (e) => {
     e.preventDefault();
     try {
@@ -326,7 +326,7 @@ const TripsManagement = () => {
     }
   };
 
-  // تعديل رحلة
+  // Update trip
   const handleUpdateTrip = async (e) => {
     e.preventDefault();
     try {
@@ -357,7 +357,7 @@ const TripsManagement = () => {
     }
   };
 
-  // حذف رحلة
+  // Delete trip
   const handleDelete = async () => {
     try {
       const response = await API.delete(`/trips/${tripToDelete._id}`);
@@ -372,7 +372,7 @@ const TripsManagement = () => {
     }
   };
 
-  // فتح مودال التعديل
+  // Open edit modal
   const openEditModal = async (trip) => {
     setIsEditMode(true);
     setEditingTripId(trip._id);
@@ -780,7 +780,7 @@ const TripsManagement = () => {
                 </div>
               </div>
 
-              {/* عرض معلومات السائق والباص الحالي في وضع التعديل */}
+              {/* Display current driver and bus information in edit mode */}
               {isEditMode && (
                 <div className="bg-blue-50 p-4 rounded-xl">
                   <p className="text-sm font-bold text-blue-800 mb-2">📋 المعلومات الحالية:</p>
@@ -798,7 +798,7 @@ const TripsManagement = () => {
                 </div>
               )}
 
-              {/* إحصائيات الموارد المتاحة - فقط للإضافة */}
+              {/* Available resources statistics - only for adding */}
               {(availableDrivers.length > 0 || availableBuses.length > 0) && !isEditMode && (
                 <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-4 rounded-xl">
                   <div className="flex justify-between items-center">
@@ -822,7 +822,7 @@ const TripsManagement = () => {
               )}
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {/* قائمة السائقين */}
+                {/* Drivers list */}
                 <div>
                   <label className="block text-sm font-bold text-gray-700 mb-2">
                     <i className="fas fa-user-circle ml-1 text-green-500"></i>
@@ -836,13 +836,13 @@ const TripsManagement = () => {
                     disabled={loadingResources}
                   >
                     <option value="">-- اختر السائق --</option>
-                    {/* عرض السائق الحالي أولاً في وضع التعديل */}
+                    {/* Display current driver first in edit mode */}
                     {isEditMode && currentTripDetails.currentDriverId && (
                       <option value={currentTripDetails.currentDriverId} className="text-blue-600 font-bold">
                         {currentTripDetails.currentDriverName} (الحالي)
                       </option>
                     )}
-                    {/* عرض باقي السائقين */}
+                    {/* Display remaining drivers */}
                     {availableDrivers
                       .filter(driver => !isEditMode || driver._id !== currentTripDetails.currentDriverId)
                       .map(driver => (
@@ -857,7 +857,7 @@ const TripsManagement = () => {
                   )}
                 </div>
 
-                {/* قائمة الباصات */}
+                {/* Buses list */}
                 <div>
                   <label className="block text-sm font-bold text-gray-700 mb-2">
                     <i className="fas fa-bus ml-1 text-purple-500"></i>
@@ -878,13 +878,13 @@ const TripsManagement = () => {
                     disabled={loadingResources}
                   >
                     <option value="">-- اختر الحافلة --</option>
-                    {/* عرض الباص الحالي أولاً في وضع التعديل */}
+                    {/* Display current bus first in edit mode */}
                     {isEditMode && currentTripDetails.currentBusId && (
                       <option value={currentTripDetails.currentBusId} className="text-blue-600 font-bold">
                         {currentTripDetails.currentBusNumber} (الحالي)
                       </option>
                     )}
-                    {/* عرض باقي الباصات */}
+                    {/* Display remaining buses */}
                     {availableBuses
                       .filter(bus => !isEditMode || bus._id !== currentTripDetails.currentBusId)
                       .map(bus => (

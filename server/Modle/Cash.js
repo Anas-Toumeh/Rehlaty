@@ -38,7 +38,6 @@ const cashSchema = new mongoose.Schema({
     }
 });
 
-// إخفاء كلمة المرور عند إرسال البيانات
 cashSchema.set('toJSON', {
     transform: function(doc, ret) {
         delete ret.password;

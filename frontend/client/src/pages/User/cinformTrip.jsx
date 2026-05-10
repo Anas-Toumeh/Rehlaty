@@ -14,7 +14,6 @@ export default function Cinform() {
   const [showPayment, setShowPayment] = useState(false);
   const [paymentStep, setPaymentStep] = useState('form'); // form, checking, processing
   
-  // معلومات الدفع
   const [paymentInfo, setPaymentInfo] = useState({
     phone: "",
     password: "",
@@ -23,7 +22,6 @@ export default function Cinform() {
   const [paymentError, setPaymentError] = useState("");
   const [balanceInfo, setBalanceInfo] = useState(null);
   
-  // مصفوفة الركاب
   const [passengers, setPassengers] = useState([
     { 
       seatNumber: null,
@@ -34,7 +32,6 @@ export default function Cinform() {
     }
   ]);
 
-  // دالة لجلب المقاعد المحجوزة
   const fetchBookedSeats = async (tripId) => {
     try {
       const response = await API.get(`/bookings/booked-seats/${tripId}`);
@@ -49,7 +46,6 @@ export default function Cinform() {
     }
   };
 
-  // دالة لإيجاد أول مقعد متاح
   const findNextAvailableSeat = (bookedSeatsList, totalSeats) => {
     for (let i = 1; i <= totalSeats; i++) {
       if (!bookedSeatsList.includes(i)) {
@@ -59,7 +55,6 @@ export default function Cinform() {
     return null;
   };
 
-  // تحديث أرقام المقاعد
   const updateSeatNumbers = (count, bookedSeatsList, totalSeats, currentPassengers) => {
     const newPassengers = [];
     const usedSeats = [...bookedSeatsList];
@@ -82,7 +77,6 @@ export default function Cinform() {
     return newPassengers;
   };
 
-  // جلب بيانات الرحلة
   useEffect(() => {
     const fetchTripData = async () => {
       if (!tripId) {
@@ -147,7 +141,6 @@ export default function Cinform() {
     fetchTripData();
   }, [tripId, navigate]);
 
-  // تحديث أرقام المقاعد عند تغيير عدد المقاعد
   useEffect(() => {
     if (trip && trip.totalSeats) {
       const updatedPassengers = updateSeatNumbers(
@@ -213,7 +206,6 @@ export default function Cinform() {
     setPaymentError("");
   };
 
-  // ✅ التحقق من الرصيد
   const checkBalance = async () => {
     if (!paymentInfo.phone || !paymentInfo.password) {
       setPaymentError("الرجاء إدخال رقم الهاتف وكلمة المرور");
@@ -246,34 +238,43 @@ export default function Cinform() {
     return false;
   };
 
-  // ✅ إتمام الدفع
   const processPayment = async () => {
-    const totalAmount = calculateTotalPrice();
-    
     setPaymentStep('processing');
-    
+
     try {
-      const response = await API.post('/cash/pay', {
+      const bookingData = {
+        tripId: trip._id,
+        selectedSeats: passengers.map(p => ({
+          seatNumber: p.seatNumber,
+          passengerName: p.passengerName,
+          passengerGender: p.passengerGender,
+          passengerPhone: p.passengerPhone,
+          passengerNationalId: p.passengerNationalId
+        })),
         phone: paymentInfo.phone,
-        password: paymentInfo.password,
-        amount: totalAmount,
-        bookingId: `BOOKING_${Date.now()}_${trip._id}`
-      });
-      
-      if (response.data.success) {
+        password: paymentInfo.password
+      };
+
+      const response = await API.post('/bookings/pay', bookingData);
+
+      if (response.data && response.data.success) {
         setPaymentStep('form');
-        return { success: true, balance: response.data.balance };
+        return { success: true, balance: response.data.accountBalance, booking: response.data.booking };
+      } else {
+        const msg = response.data?.message || 'فشل في عملية الدفع';
+        setPaymentError(msg);
+        setPaymentStep('form');
+        return { success: false, message: msg };
       }
     } catch (error) {
       console.error("Payment error:", error);
-      const message = error.response?.data?.message || "فشل في عملية الدفع";
+      const message = error.response?.data?.message || error.response?.data?.msg || "فشل في عملية الدفع";
       setPaymentError(message);
       setPaymentStep('form');
       return { success: false, message };
     }
   };
 
-  // ✅ إتمام الحجز كاملاً
   const completeBooking = async () => {
     try {
       const bookingData = {
@@ -301,11 +302,9 @@ export default function Cinform() {
     }
   };
 
-  // ✅ معالج الدفع الرئيسي
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
-    // التحقق من بيانات الركاب
+
     for (let i = 0; i < passengers.length; i++) {
       const p = passengers[i];
       if (!p.seatNumber) {
@@ -325,52 +324,41 @@ export default function Cinform() {
         return;
       }
     }
-    
-    // التحقق من معلومات الدفع
+
     if (!paymentInfo.phone || !paymentInfo.password) {
       setPaymentError("الرجاء إدخال رقم الهاتف وكلمة المرور للدفع");
       setShowPayment(true);
       return;
     }
-    
+
     setSubmitting(true);
-    
+
     try {
-      // 1. التحقق من الرصيد
+      // 1. (Optional) check quick balance for UX — backend will re-verify during payment.
       const balanceValid = await checkBalance();
       if (!balanceValid) {
         setSubmitting(false);
         return;
       }
-      
+
       const totalAmount = calculateTotalPrice();
-      
-      // 2. التأكيد مع المستخدم
-      const confirmMessage = `تأكيد الدفع\n\nالمبلغ: ${totalAmount.toLocaleString()} ل.س\nالرصيد المتاح: ${balanceInfo?.balance?.toLocaleString()} ل.س\n\nهل تريد تأكيد الدفع؟`;
-      
+
+      const confirmMessage = `تأكيد الدفع\n\nالمبلغ: ${totalAmount.toLocaleString()} ل.س\nالرصيد المتاح: ${balanceInfo?.balance?.toLocaleString() || 'غير معروف'} ل.س\n\nهل تريد تأكيد الدفع؟`;
       if (!window.confirm(confirmMessage)) {
         setSubmitting(false);
         return;
       }
-      
-      // 3. إتمام الدفع
+
       const paymentResult = await processPayment();
-      
+
       if (!paymentResult.success) {
         setSubmitting(false);
         return;
       }
-      
-      // 4. إتمام الحجز
-      const bookingResult = await completeBooking();
-      
-      if (bookingResult) {
-        alert(`✅ تم الحجز بنجاح!\n\nالمبلغ المدفوع: ${totalAmount.toLocaleString()} ل.س\nالرصيد المتبقي: ${paymentResult.balance?.toLocaleString()} ل.س\n\nتم إرسال تفاصيل الحجز إلى بريدك الإلكتروني.`);
-        navigate('/user/my-bookings');
-      } else {
-        alert("⚠️ تم خصم المبلغ ولكن حدث خطأ في تأكيد الحجز. يرجى التواصل مع الدعم.");
-      }
-      
+
+      alert(`✅ تم الحجز بنجاح!\n\nالمبلغ المدفوع: ${totalAmount.toLocaleString()} ل.س\nالرصيد المتبقي: ${paymentResult.balance?.toLocaleString() || 'غير معروف'} ل.س\n\nتم إرسال تفاصيل الحجز إلى بريدك الإلكتروني.`);
+      navigate('/user/my-bookings');
+
     } catch (error) {
       console.error("Payment process error:", error);
       alert("حدث خطأ في عملية الدفع. يرجى المحاولة مرة أخرى.");

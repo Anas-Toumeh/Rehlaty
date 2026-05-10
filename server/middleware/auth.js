@@ -1,11 +1,11 @@
 const jwt = require('jsonwebtoken');
 
-// 1. دالة التحقق من التوكن (Authentication)
+// 1. Function to verify token (Authentication)
 const auth = (req, res, next) => {
     const token = req.header('x-auth-token');
 
     if (!token) {
-        return res.status(401).json({ msg: 'لا يوجد توكن، الوصول مرفوض' });
+        return res.status(401).json({ msg: 'No token, access denied' });
     }
 
     try {
@@ -14,17 +14,17 @@ const auth = (req, res, next) => {
         req.user = decoded; 
         next();
     } catch (err) {
-        res.status(401).json({ msg: 'التوكن غير صالح' });
+        res.status(401).json({ msg: 'Token is not valid' });
     }
 };
 
-// 2. دالة التحقق من الصلاحيات (Authorization)
+// 2. Function to verify permissions (Authorization)
 const authorize = (...roles) => {
     return (req, res, next) => {
-        // تأكد أن الدور موجود في التوكن
+        // Ensure the role exists in the token
         if (!req.user || !roles.includes(req.user.role)) {
             return res.status(403).json({ 
-                msg: `الدور ${req.user ? req.user.role : 'غير معروف'} غير مسموح له بالقيام بهذا الإجراء` 
+                msg: `Role ${req.user ? req.user.role : 'unknown'} is not allowed to perform this action` 
             });
         }
         next();

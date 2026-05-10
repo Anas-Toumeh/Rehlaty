@@ -13,3 +13,5 @@ frontend/client/node_modules/
 
 server/uploads/
 server/uploads/*
+
+*.bak

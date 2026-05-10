@@ -5,29 +5,22 @@ const { auth, authorize } = require('../middleware/auth');
 
     
 
-// جميع Routes تحتاج مصادقة ودور CompanyManager أو Admin
 
-router.use(auth); // تأكد أن المستخدم مصادق عليه
-
-// المسارات العامة (للمستخدمين المسجلين فقط)
+router.use(auth);
 router.get('/users/available-drivers', companyController.getAvailableDrivers); // GET /api/users/available-drivers
 router.get('/users/stats', companyController.getUserStats);                    // GET /api/users/stats
 
-// المسارات التي تحتاج صلاحية CompanyManager أو Admin
 router.use(authorize('CompanyManager', 'Admin'));
 
-// المسارات الرئيسية
 router.route('/users')
     .get(companyController.getUsers)          // GET /api/users
     .post(companyController.createUser);      // POST /api/users
 
-// مسارات محددة
 router.route('/users/:id')
     .get(companyController.getUserById)       // GET /api/users/:id
     .put(companyController.updateUser)        // PUT /api/users/:id
     .delete(companyController.deleteUser);    // DELETE /api/users/:id
 
-// تبديل حالة المستخدم (تفعيل/تعطيل)
 router.patch('/users/:id/toggle-status', companyController.toggleUserStatus); // PATCH /api/users/:id/toggle-status
 
 

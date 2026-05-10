@@ -6,17 +6,16 @@ const multer = require('multer');
 const path = require('path');
 const storage = multer.diskStorage({
     destination: (req, file, cb) => {
-        cb(null, 'uploads/'); // تأكد من إنشاء هذا المجلد في جذر المشروع
+        cb(null, 'uploads/'); 
     },
     filename: (req, file, cb) => {
-        // اسم ملف فريد: الوقت الحالي + اسم الملف الأصلي
         cb(null, Date.now() + path.extname(file.originalname));
     }
 });
 
 const upload = multer({ 
     storage: storage,
-    limits: { fileSize: 2000000 }, // حد 2 ميجا بايت
+    limits: { fileSize: 2000000 }, 
     fileFilter: (req, file, cb) => {
         const fileTypes = /jpeg|jpg|png/;
         const extname = fileTypes.test(path.extname(file.originalname).toLowerCase());
@@ -26,10 +25,8 @@ const upload = multer({
 });
 
 
-// تطبيق الحماية
-router.use(auth , authorize('Admin')); // حماية عامة أولاً لفك التوكن
+router.use(auth , authorize('Admin')); 
 
-// مسارات الأدمن
 router.post('/companies', authorize('Admin'), upload.single('logo'), adminController.createCompany);
 router.put('/companies/:id', authorize('Admin'), upload.single('logo'), adminController.updateCompany);
 router.patch('/companies/:id/status', authorize('Admin'), adminController.toggleCompanyStatus);

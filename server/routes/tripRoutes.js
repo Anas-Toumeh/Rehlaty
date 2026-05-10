@@ -11,13 +11,11 @@ const {
 } = require('../controllers/tripController');
 const { auth, authorize } = require('../middleware/auth');
 
-// Middleware المصادقة (افتراضي لديك)
 
 router.use(auth)
 router.get('/',getTrips)
-router.get('/details/:id', authorize('Customer'), getTripById)
-// جميع routes تحتاج مصادقة ودور CompanyManager
-router.use(authorize('CompanyManager', 'Admin'));
+router.get('/details/:id', authorize('Customer', 'CompanyManager', 'Admin', 'Employee'), getTripById)
+router.use(authorize('CompanyManager', 'Admin', 'Employee'));
 // Routes
 
 router.post('/',createTrip)

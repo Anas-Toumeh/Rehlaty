@@ -11,7 +11,7 @@ const userSchema = new mongoose.Schema({
         default: 'Customer' 
     },
     companyId: { type: mongoose.Schema.Types.ObjectId, ref: 'Company', default: null },
-    isActive: { type: Boolean, default: true }, // الحقل الجديد للتحكم بحالة الموظف/المدير
+    isActive: { type: Boolean, default: true }, // New field to control employee/manager status
     createdAt: { type: Date, default: Date.now }
 });
 

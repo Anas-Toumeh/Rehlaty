@@ -13,31 +13,31 @@ const ReportsDashboard = () => {
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
   const [showDetailedReport, setShowDetailedReport] = useState(false);
   const companyId = localStorage.getItem('companyId');
-  // بيانات الإحصائيات
+  // Statistics data
   const [stats, setStats] = useState({
-    // إحصائيات عامة
+    // General statistics
     totalBuses: 0,
     totalEmployees: 0,
     totalDrivers: 0,
     
-    // إحصائيات الرحلات
+    // Trips statistics
     completedTrips: 0,
     scheduledTrips: 0,
     ongoingTrips: 0,
     cancelledTrips: 0,
     
-    // إحصائيات الحجوزات والإيرادات
+    // Bookings and revenue statistics
     totalBookings: 0,
     totalRevenue: 0,
     averageTicketPrice: 0,
     
-    // إحصائيات شهرية
+    // Monthly statistics
     monthlyTrips: [],
     monthlyRevenue: 0,
     monthlyBookings: 0
   });
   
-  // بيانات التقرير التفصيلي
+  // Detailed report data
   const [detailedReport, setDetailedReport] = useState({
     dailyStats: [],
     topRoutes: [],
@@ -49,10 +49,10 @@ const ReportsDashboard = () => {
     setTimeout(() => setToast(null), 3000);
   };
 
-  // جلب الإحصائيات العامة
+  // Fetch general statistics
   const fetchGeneralStats = async () => {
     try {
-      // جلب عدد الباصات
+      // Fetch number of buses
       const busesRes = await API.get("company/buses");
       const employeesRes = await API.get("/company/users", {
         params: {
@@ -87,7 +87,7 @@ const ReportsDashboard = () => {
     }
   };
 
-  // جلب إحصائيات الرحلات والحجوزات
+  // Fetch trips and bookings statistics
   const fetchTripStats = async () => {
     try {
       const response = await API.get("/company/trip-stats");
@@ -109,7 +109,7 @@ const ReportsDashboard = () => {
     }
   };
 
-  // جلب التقارير الشهرية
+  // Fetch monthly reports
   const fetchMonthlyReport = async () => {
     try {
       setLoading(true);
@@ -133,7 +133,7 @@ const ReportsDashboard = () => {
     }
   };
 
-  // جلب التقرير التفصيلي
+  // Fetch detailed report
   const fetchDetailedReport = async () => {
     try {
       setLoading(true);
@@ -157,7 +157,7 @@ const ReportsDashboard = () => {
     }
   };
 
-  // تصدير التقرير إلى PDF/Excel
+  // Export report to PDF/Excel
   const exportReport = async (format = 'pdf') => {
     try {
       const response = await API.get(`/company/export/${format}`, {
@@ -165,7 +165,7 @@ const ReportsDashboard = () => {
         responseType: 'blob'    
       });
       
-      // إنشاء رابط التحميل
+      // Create download link
       const url = window.URL.createObjectURL(new Blob([response.data]));
       const link = document.createElement('a');
       link.href = url;
@@ -194,7 +194,7 @@ const ReportsDashboard = () => {
     loadData();
   }, [selectedMonth, selectedYear]);
 
-  // تنسيق الأرقام
+  // Format numbers
   const formatNumber = (num) => {
     return num?.toLocaleString() || 0;
   };
@@ -203,7 +203,7 @@ const ReportsDashboard = () => {
     return `${amount?.toLocaleString() || 0} ل.س`;
   };
 
-  // أشهر السنة
+  // Months of the year
   const months = [
     { value: 1, label: "يناير" },
     { value: 2, label: "فبراير" },
@@ -219,7 +219,7 @@ const ReportsDashboard = () => {
     { value: 12, label: "ديسمبر" }
   ];
 
-  // السنوات (آخر 5 سنوات)
+  // Years (last 5 years)
   const years = Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - i);
 
   if (loading) {
@@ -288,7 +288,7 @@ const ReportsDashboard = () => {
                   </div>
                 </div>
                 
-                {/* مُحدد الشهر والسنة */}
+                {/* Month and year selector */}
                 <div className="flex gap-2">
                   <select
                     value={selectedYear}
@@ -316,7 +316,7 @@ const ReportsDashboard = () => {
           {/* Content */}
           <div className="p-4 sm:p-6 lg:p-8">
             
-            {/* بطاقات الإحصائيات العامة */}
+            {/* General statistics cards */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
               <StatCard 
                 title="إجمالي الباصات" 
@@ -349,7 +349,7 @@ const ReportsDashboard = () => {
               />
             </div>
 
-            {/* بطاقات حالة الرحلات */}
+            {/* Trips status cards */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
               <TripStatusCard 
                 title="مكتملة" 
@@ -385,9 +385,9 @@ const ReportsDashboard = () => {
               />
             </div>
 
-            {/* بطاقات الإيرادات الشهرية */}
+            {/* Monthly revenue cards */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-              {/* الإيرادات الشهرية */}
+              {/* Monthly revenue */}
               <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
                 <div className="bg-gradient-to-r from-emerald-600 to-teal-600 p-4">
                   <h3 className="text-white font-bold text-lg flex items-center gap-2">
@@ -413,7 +413,7 @@ const ReportsDashboard = () => {
                 </div>
               </div>
 
-              {/* إحصائيات الحجوزات */}
+              {/* Bookings statistics */}
               <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
                 <div className="bg-gradient-to-r from-blue-600 to-indigo-600 p-4">
                   <h3 className="text-white font-bold text-lg flex items-center gap-2">
@@ -443,7 +443,7 @@ const ReportsDashboard = () => {
               </div>
             </div>
 
-            {/* أزرار التقارير */}
+            {/* Reports buttons */}
             <div className="flex flex-wrap gap-4 mb-8">
               <button
                 onClick={fetchDetailedReport}
@@ -468,7 +468,7 @@ const ReportsDashboard = () => {
               </button>
             </div>
 
-            {/* التقرير التفصيلي - Modal */}
+            {/* Detailed report - Modal */}
             {showDetailedReport && (
               <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" onClick={() => setShowDetailedReport(false)}>
                 <div className="bg-white rounded-3xl w-full max-w-4xl max-h-[90vh] overflow-y-auto shadow-2xl" onClick={(e) => e.stopPropagation()}>
@@ -484,7 +484,7 @@ const ReportsDashboard = () => {
                   </div>
                   
                   <div className="p-6 space-y-6">
-                    {/* الرحلات اليومية */}
+                    {/* Daily trips */}
                     <div>
                       <h3 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
                         <i className="fas fa-calendar-day text-blue-500"></i>
@@ -514,7 +514,7 @@ const ReportsDashboard = () => {
                       </div>
                     </div>
 
-                    {/* أفضل المسارات */}
+                    {/* Top routes */}
                     <div>
                       <h3 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
                         <i className="fas fa-route text-purple-500"></i>
@@ -543,7 +543,7 @@ const ReportsDashboard = () => {
                       </div>
                     </div>
 
-                    {/* استغلال الباصات */}
+                    {/* Bus utilization */}
                     <div>
                       <h3 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
                         <i className="fas fa-chart-pie text-amber-500"></i>
@@ -613,7 +613,7 @@ const ReportsDashboard = () => {
   );
 };
 
-// مكون بطاقة الإحصائيات
+// Statistics card component
 const StatCard = ({ title, value, icon, color, bgColor, isCurrency }) => (
   <div className={`${bgColor} rounded-2xl p-6 border border-gray-100 hover:shadow-lg transition-all duration-300`}>
     <div className="flex items-center justify-between mb-4">
@@ -634,7 +634,7 @@ const StatCard = ({ title, value, icon, color, bgColor, isCurrency }) => (
   </div>
 );
 
-// مكون بطاقة حالة الرحلة
+// Trip status card component
 const TripStatusCard = ({ title, value, icon, color, bgColor, borderColor }) => (
   <div className={`bg-white rounded-2xl p-6 border ${borderColor} hover:shadow-lg transition-all duration-300`}>
     <div className="flex items-center justify-between mb-3">

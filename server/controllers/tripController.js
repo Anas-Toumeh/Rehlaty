@@ -3,29 +3,29 @@ const Bus = require('../Modle/Bus');
 const User = require('../Modle/User');
 const Booking = require('../Modle/Booking');
 
-// @desc    جلب جميع الرحلات مع فلترة وبحث
+// @desc    Fetch all trips with filtering and search
 // @route   GET /api/trips
 // @access  Private (CompanyManager)
 const getTrips = async (req, res) => {
     try {
         const { status, search, from, to, date, companyId } = req.query;
         
-        // بناء استعلام البحث
+        // Build search query
         let query = {};
         
-        // إذا كان المستخدم مدير شركة، نضيف فلتر الشركة
+        // If user is a company manager, add company filter
         if (req.user && req.user.companyId) {
             query.companyId = req.user.companyId;
         } else if (companyId) {
             query.companyId = companyId;
         }
         
-        // فلتر الحالة
+        // Status filter
         if (status && status !== 'all') {
             query.status = status;
         }
         
-        // البحث النصي
+        // Text search
         if (search) {
             query.$or = [
                 { from: { $regex: search, $options: 'i' } },
@@ -33,11 +33,11 @@ const getTrips = async (req, res) => {
             ];
         }
         
-        // فلتر المدن
+        // City filters
         if (from) query.from = from;
         if (to) query.to = to;
         
-        // فلتر التاريخ
+        // Date filter
         if (date) {
             const startDate = new Date(date);
             const endDate = new Date(date);
@@ -45,15 +45,15 @@ const getTrips = async (req, res) => {
             query.departureTime = { $gte: startDate, $lte: endDate };
         }
         
-        // جلب الرحلات مع populate
+        // Fetch trips with populate
         const trips = await Trip.find(query)
             .populate('busId', 'busNumber capacity busType features')
             .populate('driverId', 'fullName phone email')
             .populate('companyId', 'name')
-            .populate('bookings')  // للحصول على الحجوزات لحساب المقاعد
+            .populate('bookings')  // To get bookings to calculate seats
             .sort({ departureTime: 1 });
         
-        // حساب الإحصائيات
+        // Calculate statistics
         const stats = {
             total: trips.length,
             scheduled: trips.filter(t => t.status === 'Scheduled').length,
@@ -74,13 +74,13 @@ const getTrips = async (req, res) => {
         console.error('Error in getTrips:', error);
         res.status(500).json({ 
             success: false, 
-            message: 'خطأ في جلب الرحلات',
+            message: 'Error fetching trips',
             error: error.message 
         });
     }
 };
 
-// @desc    جلب رحلة واحدة بواسطة ID
+// @desc    Fetch a single trip by ID
 // @route   GET /api/trips/:id
 // @access  Private
 const getTripById = async (req, res) => {
@@ -96,7 +96,7 @@ const getTripById = async (req, res) => {
         if (!trip) {
             return res.status(404).json({ 
                 success: false, 
-                message: 'الرحلة غير موجودة' 
+                message: 'Trip not found' 
             });
         }
         
@@ -109,29 +109,29 @@ const getTripById = async (req, res) => {
         console.error('Error in getTripById:', error);
         res.status(500).json({ 
             success: false, 
-            message: 'خطأ في جلب الرحلة',
+            message: 'Error fetching trip',
             error: error.message 
         });
     }
 };
 
-// @desc    إنشاء رحلة جديدة
+// @desc    Create a new trip
 // @route   POST /api/trips
 // @access  Private (CompanyManager)
 const createTrip = async (req, res) => {
     try {
         const { from, to, departureTime, arrivalTime, price, busId, driverId, notes,companyId,postedBy } = req.body;
         
-        // التحقق من وجود الباص
+        // Check if bus exists
         const bus = await Bus.findById(busId);
         if (!bus) {
             return res.status(404).json({ 
                 success: false, 
-                message: 'الباص غير موجود' 
+                message: 'Bus not found' 
             });
         }
         
-        // التحقق من عدم وجود رحلة لنفس الباص في نفس الوقت تقريباً
+        // Check that no trip exists for the same bus at approximately the same time
         const existingTrip = await Trip.findOne({
             busId,
             departureTime: {
@@ -144,11 +144,11 @@ const createTrip = async (req, res) => {
         if (existingTrip) {
             return res.status(400).json({
                 success: false,
-                message: 'هذا الباص لديه رحلة أخرى في نفس اليوم'
+                message: 'This bus has another trip on the same day'
             });
         }
         
-        // إنشاء الرحلة
+        // Create the trip
         const trip = new Trip({
             companyId:companyId,
             busId,
@@ -166,13 +166,13 @@ const createTrip = async (req, res) => {
         
         await trip.save();
         
-        // إعادة البيانات مع populate
+        // Return data with populate
         await trip.populate('busId', 'busNumber capacity busType');
         await trip.populate('driverId', 'fullName phone');
         
         res.status(201).json({
             success: true,
-            message: 'تم إنشاء الرحلة بنجاح',
+            message: 'Trip created successfully',
             trip
         });
         
@@ -180,13 +180,13 @@ const createTrip = async (req, res) => {
         console.error('Error in createTrip:', error);
         res.status(400).json({ 
             success: false, 
-            message: 'خطأ في إنشاء الرحلة',
+            message: 'Error creating trip',
             error: error.message 
         });
     }
 };
 
-// @desc    تحديث رحلة
+// @desc    Update a trip
 // @route   PUT /api/trips/:id
 // @access  Private (CompanyManager)
 const updateTrip = async (req, res) => {
@@ -197,12 +197,11 @@ const updateTrip = async (req, res) => {
         
         if (!trip) {
             return res.status(404).json({ 
-                success: false, 
+                success: false,
                 message: 'الرحلة غير موجودة' 
             });
         }
         
-        // تحديث الحقول المسموح بها
         if (status) trip.status = status;
         if (driverId) trip.driverId = driverId;
         if (notes) trip.notes = notes;
@@ -228,7 +227,6 @@ const updateTrip = async (req, res) => {
     }
 };
 
-// @desc    حذف رحلة
 // @route   DELETE /api/trips/:id
 // @access  Private (CompanyManager)
 const deleteTrip = async (req, res) => {
@@ -242,7 +240,6 @@ const deleteTrip = async (req, res) => {
             });
         }
         
-        // التحقق من وجود حجوزات
         const bookingsCount = await Booking.countDocuments({ tripId: req.params.id });
         
         if (bookingsCount > 0) {
@@ -269,10 +266,8 @@ const deleteTrip = async (req, res) => {
     }
 };
 
-// @desc    جلب السائقين والباصات المتاحة لرحلة جديدة
 // @route   GET /api/trips/available-resources
 // @access  Private (CompanyManager)
-// @desc    جلب السائقين والباصات المتاحة لرحلة جديدة
 // @route   GET /api/trips/available-resources
 // @access  Private (CompanyManager)
 const getAvailableResources = async (req, res) => {
@@ -282,7 +277,6 @@ const getAvailableResources = async (req, res) => {
         
         console.log('🔍 Fetching available resources:', { departureTime, from });
         
-        // 1. جلب جميع السائقين النشطين في الشركة (بمن فيهم الجدد)
         const allActiveDrivers = await User.find({
             companyId:companyId,
             role: 'Driver',
@@ -291,7 +285,6 @@ const getAvailableResources = async (req, res) => {
         
         console.log(`📋 Total active drivers: ${allActiveDrivers.length}`);
         
-        // 2. إذا كان هناك وقت محدد، نتحقق من السائقين المشغولين فقط في ذلك الوقت
         let occupiedDriverIds = [];
         
         if (departureTime) {
@@ -301,7 +294,6 @@ const getAvailableResources = async (req, res) => {
             const endOfDay = new Date(targetDate);
             endOfDay.setHours(23, 59, 59, 999);
             
-            // جلب السائقين المشغولين في نفس اليوم
             const occupiedDrivers = await Trip.find({
                 companyId:companyId,
                 departureTime: { $gte: startOfDay, $lte: endOfDay },
@@ -312,26 +304,21 @@ const getAvailableResources = async (req, res) => {
             console.log(`🚫 Occupied driver IDs: ${occupiedDriverIds.length}`);
         }
         
-        // 3. تصفية السائقين: إظهار السائقين الجدد (ليس لديهم رحلات) + السائقين غير المشغولين
         const availableDrivers = allActiveDrivers.filter(driver => {
-            // إذا لم يكن لديه أي رحلة على الإطلاق (جديد) -> يظهر
-            // أو إذا كان لديه رحلة لكن ليس مشغول في هذا الوقت
             return !occupiedDriverIds.includes(driver._id.toString());
         });
         
         console.log(`✅ Available drivers: ${availableDrivers.length}`);
         
-        // 4. تنسيق بيانات السائقين
         const formattedDrivers = availableDrivers.map(driver => ({
             _id: driver._id,
             name: driver.fullName,
             fullName: driver.fullName,
             phone: driver.phone,
             email: driver.email,
-            isNew: true // إضافة علامة للسائق الجديد
+            isNew: true 
         }));
         
-        // 5. جلب جميع الباصات النشطة في الشركة (بمن فيهم الجدد)
         const allActiveBuses = await Bus.find({
             companyId:companyId,
             isActive: true
@@ -339,7 +326,6 @@ const getAvailableResources = async (req, res) => {
         
         console.log(`📋 Total active buses: ${allActiveBuses.length}`);
         
-        // 6. إذا كان هناك وقت محدد، نتحقق من الباصات المشغولة
         let occupiedBusIds = [];
         
         if (departureTime) {
@@ -359,14 +345,12 @@ const getAvailableResources = async (req, res) => {
             console.log(`🚫 Occupied bus IDs: ${occupiedBusIds.length}`);
         }
         
-        // 7. تصفية الباصات: إظهار الباصات الجديدة + الباصات غير المشغولة
         const availableBuses = allActiveBuses.filter(bus => {
             return !occupiedBusIds.includes(bus._id.toString());
         });
         
         console.log(`✅ Available buses: ${availableBuses.length}`);
         
-        // 8. تنسيق بيانات الباصات
         const formattedBuses = availableBuses.map(bus => ({
             _id: bus._id,
             busNumber: bus.busNumber,
@@ -375,7 +359,7 @@ const getAvailableResources = async (req, res) => {
             capacity: bus.capacity,
             busType: bus.busType,
             features: bus.features,
-            isNew: true // إضافة علامة للباص الجديد
+            isNew: true 
         }));
         
         res.status(200).json({
@@ -400,7 +384,6 @@ const getAvailableResources = async (req, res) => {
     }
 };
 
-// @desc    جلب إحصائيات الرحلات
 // @route   GET /api/trips/stats
 // @access  Private (CompanyManager)
 const getTripStats = async (req, res) => {

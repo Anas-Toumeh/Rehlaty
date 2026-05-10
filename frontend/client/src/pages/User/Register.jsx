@@ -10,27 +10,27 @@ const Register = () => {
   const [error, setError] = useState("");
   const [showPassword, setShowPassword] = useState(false);
 
-  // حالة الحقول
+  // Fields state
   const [formData, setFormData] = useState({
-    fullName: "",      // ✅ دمج الاسم الأول والكنية
+    fullName: "",      // ✅ Combine first name and last name
     email: "",
-    phone: "",         // ✅ إضافة رقم الهاتف
+    phone: "",         // ✅ Add phone number
     password: "",
-    confirmPassword: "" // ✅ تأكيد كلمة المرور
+    confirmPassword: "" // ✅ Confirm password
   });
 
-  // تحديث حالة الحقول عند التغيير
+  // Update fields state when changing
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData({
       ...formData,
       [name]: value,
     });
-    // مسح الخطأ عند تغيير الحقول
+    // Clear error when fields change
     if (error) setError("");
   };
 
-  // التحقق من صحة البيانات
+  // Validate data
   const validateForm = () => {
     if (!formData.fullName.trim()) {
       setError("الرجاء إدخال الاسم الكامل");
@@ -63,7 +63,7 @@ const Register = () => {
     return true;
   };
 
-  // إرسال البيانات إلى السيرفر
+  // Send data to server
   const handleSubmit = async (e) => {
     e.preventDefault();
     
@@ -72,7 +72,7 @@ const Register = () => {
     setLoading(true);
     setError("");
     
-    // ✅ تجهيز البيانات للإرسال حسب ما يطلبه الـ API
+    // ✅ Prepare data to send according to API requirements
     const requestData = {
       fullName: formData.fullName,
       email: formData.email,
@@ -92,13 +92,13 @@ const Register = () => {
         alert("✅ تم إنشاء الحساب بنجاح!");
         console.log("✅ Registration response:", response.data);
         
-        // تخزين التوكن إذا أردت تسجيل الدخول تلقائياً
+        // Store token if you want to auto login
         if (response.data.token) {
           localStorage.setItem('token', response.data.token);
           localStorage.setItem('user', JSON.stringify(response.data.user));
         }
         
-        // التوجيه إلى صفحة تسجيل الدخول
+        // Redirect to login page
         navigate('/login');
       } else {
         setError(response.data.message || "حدث خطأ في إنشاء الحساب");
@@ -115,12 +115,12 @@ const Register = () => {
 
   return (
     <div className="flex font-Tajawal min-h-screen" >
-      {/* القسم الأيمن - الصورة */}
+      {/* Right section - Image */}
       <div className="w-[80%] h-screen bg-center hidden lg:block">
         <img src={bg} alt="Background" className="h-screen w-full" />
       </div>
       
-      {/* القسم الأيسر - نموذج التسجيل */}
+      {/* Left section - Registration form */}
       <form 
         className="pt-4 place-items-center bg-white lg:-ml-20 pl-10 w-full lg:w-[50%] rounded-bl-[80px] shadow-xl lg:shadow-none overflow-y-auto max-h-screen"
         onSubmit={handleSubmit}
@@ -162,7 +162,7 @@ const Register = () => {
             </div>
           </div>
           
-          {/* البريد الإلكتروني */}
+          {/* Email */}
           <div>
             <label className="block text-right font-medium text-gray-700">
               : البريد الإلكتروني
@@ -182,7 +182,7 @@ const Register = () => {
             </div>
           </div>
           
-          {/* رقم الهاتف */}
+          {/* Phone number */}
           <div>
             <label className="block text-right font-medium text-gray-700">
               : رقم الهاتف
@@ -202,7 +202,7 @@ const Register = () => {
             </div>
           </div>
           
-          {/* كلمة المرور */}
+          {/* Password */}
           <div>
             <label className="block text-right font-medium text-gray-700">
               : كلمة المرور
@@ -229,7 +229,7 @@ const Register = () => {
             </div>
           </div>
           
-          {/* تأكيد كلمة المرور */}
+          {/* Confirm password */}
           <div>
             <label className="block text-right font-medium text-gray-700">
               : تأكيد كلمة المرور
@@ -249,7 +249,7 @@ const Register = () => {
             </div>
           </div>
           
-          {/* زر التسجيل */}
+          {/* Registration button */}
           <div className="col-span-1 md:col-span-2 mt-4">
             <button 
               className="w-full h-14 rounded-xl cursor-pointer text-white text-xl font-bold bg-[#3E92CC] hover:bg-[#2E7AB3] transition-all duration-200 disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center gap-2"
@@ -270,7 +270,7 @@ const Register = () => {
             </button>
           </div>
           
-          {/* رابط تسجيل الدخول */}
+          {/* Login link */}
           <div className="col-span-1 md:col-span-2 text-center mt-4">
             <p className="text-gray-500">
               لديك حساب بالفعل؟ 
@@ -280,7 +280,7 @@ const Register = () => {
             </p>
           </div>
           
-          {/* الشروط والأحكام */}
+          {/* Terms and conditions */}
           <div className="col-span-1 md:col-span-2 text-center mt-2">
             <p className="text-gray-400 text-sm">
               بالضغط على إنشاء حساب، أنت توافق على{' '}

@@ -18,7 +18,7 @@ const AdminSidebar = ({ closeSidebar }) => {
     <aside className="w-80 h-full bg-white border-l border-gray-100 flex flex-col shadow-2xl lg:shadow-none">
       {/* Header: Logo & App Name */}
       <div className="p-8 border-b border-gray-50 flex flex-col items-center relative">
-        {/* زر الإغلاق للموبايل */}
+        {/* Close button for mobile */}
         <button
           onClick={closeSidebar}
           className="lg:hidden absolute left-4 top-4 w-8 h-8 rounded-full bg-gray-50 text-gray-400 hover:text-red-500 transition-colors"
@@ -42,7 +42,7 @@ const AdminSidebar = ({ closeSidebar }) => {
               key={item.path}
               onClick={() => {
                 navigate(item.path);
-                closeSidebar(); // يغلق السايد بار في الموبايل بعد الضغط
+                closeSidebar(); // Close sidebar on mobile after click
               }}
               className={`
                 w-full flex items-center gap-4 px-6 py-4 rounded-2xl font-bold transition-all duration-300 group

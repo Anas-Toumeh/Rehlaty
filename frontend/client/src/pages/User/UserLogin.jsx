@@ -21,7 +21,7 @@ const UserLogin = () => {
       ...formData,
       [name]: value,
     });
-    // مسح الخطأ عند تغيير الحقول
+    // Clear error when fields change
     if (error) setError('');
   };
 
@@ -37,7 +37,7 @@ const UserLogin = () => {
     setError('');
     
     try {
-        // ✅ استخدام مسار customer-login بدلاً من login
+        // ✅ Using customer-login path instead of login
         const response = await axios.post('http://localhost:5000/api/auth/customer-login', {
             email: formData.email,
             password: formData.password
@@ -53,7 +53,7 @@ const UserLogin = () => {
             
             console.log('✅ Customer login successful!', response.data);
             
-            // توجيه العميل إلى صفحته
+            // Redirect customer to their page
             navigate(`/user/${user._id}`);
         }
     } catch (err) {
@@ -67,12 +67,12 @@ const UserLogin = () => {
 
   return (
     <div className="flex font-Tajawal min-h-screen" >
-      {/* القسم الأيمن - الصورة */}
+      {/* Right section - Image */}
       <div className="w-[80%] h-screen bg-center   hidden lg:block">
         <img src={bg} alt="Background" className="h-screen w-full" />
       </div>
       
-      {/* القسم الأيسر - نموذج تسجيل الدخول */}
+      {/* Left section - Login form */}
       <form 
         className="pt-25 place-items-center bg-white lg:-ml-20 pl-10 w-full lg:w-[50%] rounded-bl-[80px] shadow-xl lg:shadow-none"
         onSubmit={handleSubmit}
@@ -84,7 +84,7 @@ const UserLogin = () => {
         
         <div className="grid grid-cols-1 gap-x-3 gap-y-6 w-[80%] md:w-[60%] lg:w-[80%] xl:w-[70%]">
           
-          {/* رسالة الخطأ */}
+          {/* Error message */}
           {error && (
             <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-lg text-right">
               <i className="fas fa-exclamation-circle ml-2"></i>
@@ -92,7 +92,7 @@ const UserLogin = () => {
             </div>
           )}
           
-          {/* حقل البريد الإلكتروني */}
+          {/* Email field */}
           <div>
             <label className="block text-right font-medium text-gray-700">
               : البريد الإلكتروني
@@ -112,7 +112,7 @@ const UserLogin = () => {
             </div>
           </div>
           
-          {/* حقل كلمة المرور */}
+          {/* Password field */}
           <div>
             <label className="block text-right font-medium text-gray-700">
               : كلمة المرور
@@ -139,7 +139,7 @@ const UserLogin = () => {
             </div>
           </div>
           
-          {/* خيارات إضافية */}
+          {/* Additional options */}
           <div className="flex justify-between items-center text-sm">
             <label className="flex items-center cursor-pointer">
               <input
@@ -153,7 +153,7 @@ const UserLogin = () => {
             </Link>
           </div>
           
-          {/* زر تسجيل الدخول */}
+          {/* Login button */}
           <button 
             className="w-full h-14 place-self-center mt-5 text-white text-xl font-bold bg-[#3E92CC] rounded-lg hover:bg-[#2E7AB3] transition-all duration-200 disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center gap-2"
             type="submit"
@@ -172,7 +172,7 @@ const UserLogin = () => {
             )}
           </button>
           
-          {/* رابط إنشاء حساب جديد */}
+          {/* Create new account link */}
           <div className="text-center">
             <p className="text-gray-500">
               ليس لديك حساب؟ 
@@ -182,7 +182,7 @@ const UserLogin = () => {
             </p>
           </div>
           
-          {/* الشروط والأحكام */}
+          {/* Terms and conditions */}
           <p className="text-gray-400 text-center text-sm mt-4">
             بالضغط على تسجيل الدخول، أنت توافق على{' '}
             <Link to="/privacy" className="text-[#1A5276] hover:underline">
@@ -194,7 +194,7 @@ const UserLogin = () => {
             </Link>
           </p>
           
-          {/* رابط تسجيل دخول الشركات */}
+          {/* Company login link */}
           
         </div>
       </form>

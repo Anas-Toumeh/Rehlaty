@@ -5,6 +5,7 @@ import API from '../../api/axiosConfig';
 import UserNavbar from './UserNavbar';
 
 export default function MyBookings() {
+  const user = localStorage.getItem('user') ? JSON.parse(localStorage.getItem('user')) : null;
   const  id  =localStorage.getItem('userId');
   const navigate = useNavigate();
   const [bookings, setBookings] = useState([]);
@@ -14,7 +15,7 @@ export default function MyBookings() {
   useEffect(() => {
     const fetchBookings = async () => {
       try {
-        const response = await API.get(`/bookings/user/${id}`);
+        const response = await API.get('/bookings/my-bookings');
         if (response.data.success) {
           setBookings(response.data.bookings);
         }
@@ -91,7 +92,7 @@ export default function MyBookings() {
       <div className="container mx-auto px-4 py-8 max-w-5xl">
         {/* عنوان الصفحة */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-right text-gray-800">louay kashkool</h1>
+          <h1 className="text-3xl font-bold text-right text-gray-800">{user?.fullName || 'My Trips'}</h1>
           <p className="text-right text-gray-500 mt-1">رحلاتي</p>
         </div>
         

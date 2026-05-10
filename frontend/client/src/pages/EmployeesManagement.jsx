@@ -15,12 +15,12 @@ const EmployeesManagement = () => {
   const [userToDelete, setUserToDelete] = useState(null);
   const [toast, setToast] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
-  const [activeTab, setActiveTab] = useState("employees"); // employees أو drivers
+  const [activeTab, setActiveTab] = useState("employees"); // employees or drivers
   const [users, setUsers] = useState([]);
   const [drivers, setDrivers] = useState([]);
   const companyId = localStorage.getItem('companyId');
 
-  // أنواع المستخدمين
+  // User types
   const USER_ROLES = {
     employee: { value: "Employee", label: "موظف", color: "bg-blue-100 text-blue-700", icon: "fa-user-tie" },
     manager: { value: "CompanyManager", label: "مدير", color: "bg-purple-100 text-purple-700", icon: "fa-user-cog" },
@@ -42,7 +42,7 @@ const EmployeesManagement = () => {
     setTimeout(() => setToast(null), 3000);
   };
 
-  // جلب الموظفين (Employee + CompanyManager)
+  // Fetch employees (Employee + CompanyManager)
   const fetchEmployees = async () => {
     try {
       const response = await API.get("/company/users", {
@@ -65,17 +65,17 @@ const EmployeesManagement = () => {
     }
   };
 
-  // جلب السائقين
+  // Fetch drivers
   const fetchDrivers = async () => {
     try {
       const response = await API.get("/company/users", {
         params: {
-           role: ["Driver"], // ✅ بهذه الطريقة
+           role: ["Driver"], // ✅ This way
               
                 companyId: companyId
             },
             paramsSerializer: {
-                indexes: null // مهم لتنسيق المصفوفة بشكل صحيح
+                indexes: null // Important for correct array formatting
             }
         });
       
@@ -97,7 +97,7 @@ const EmployeesManagement = () => {
     fetchAll();
   }, []);
 
-  // إنشاء مستخدم جديد
+  // Create new user
   const handleCreateUser = async (e) => {
     e.preventDefault();
     
@@ -135,7 +135,7 @@ const EmployeesManagement = () => {
     }
   };
 
-  // تعديل مستخدم
+  // Update user
   const handleUpdateUser = async (e) => {
     e.preventDefault();
     try {
@@ -173,7 +173,7 @@ const EmployeesManagement = () => {
     }
   };
 
-  // حذف مستخدم
+  // Delete user
   const handleDelete = async () => {
     try {
       const response = await API.delete(`/company/users/${userToDelete._id}`);
@@ -193,7 +193,7 @@ const EmployeesManagement = () => {
     }
   };
 
-  // تبديل حالة المستخدم (تفعيل/تعطيل)
+  // Toggle user status (activate/deactivate)
   const toggleUserStatus = async (userId, currentStatus, role) => {
     try {
       const response = await API.patch(`/company/users/${userId}/toggle-status`, {
@@ -214,7 +214,7 @@ const EmployeesManagement = () => {
     }
   };
 
-  // فتح مودال التعديل
+  // Open edit modal
   const openEditModal = (user) => {
     setIsEditMode(true);
     setEditingUserId(user._id);
@@ -268,7 +268,7 @@ const EmployeesManagement = () => {
     );
   };
 
-  // فلترة حسب البحث
+  // Filter by search
   const filteredEmployees = users.filter(user => 
     user.fullName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     user.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -647,7 +647,7 @@ const EmployeesManagement = () => {
                 </div>
               </div>
 
-              {/* حالة المستخدم - تظهر فقط في وضع التعديل */}
+              {/* User status - shown only in edit mode */}
               {isEditMode && (
                 <div>
                   <label className="block text-sm font-bold text-gray-700 mb-2">
