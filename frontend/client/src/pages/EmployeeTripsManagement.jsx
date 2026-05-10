@@ -511,7 +511,7 @@ const EmployeeTripsManagement = () => {
       </div>
       
       {/* Main Content */}
-      <div className="lg:mr-20 transition-all duration-300">
+      <div className="w-full transition-all duration-300">
         <main className="w-full">
           {/* Header */}
           <div className="sticky top-0 z-30 bg-white/80 backdrop-blur-md border-b border-gray-100 shadow-sm">

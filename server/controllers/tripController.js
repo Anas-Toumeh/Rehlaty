@@ -84,7 +84,8 @@ const getTrips = async (req, res) => {
 // @route   GET /api/trips/:id
 // @access  Private
 const getTripById = async (req, res) => {
-    try {
+    try {console.log(req.params);
+    
         const trip = await Trip.findById(req.params.id)
             .populate('busId', 'busNumber capacity busType')
             .populate('driverId', 'fullName phone email')

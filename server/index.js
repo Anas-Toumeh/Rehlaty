@@ -7,6 +7,8 @@ const companyRoutes = require('./routes/companyRoutes');
 const userRoutes = require('./routes/userRoutes');
 const tripRoutes = require('./routes/tripRoutes');
 const path = require('path');
+const bookingRoutes = require('./routes/bookingRoutes');
+const cashRoutes = require('./routes/cashRoutes');
 require('dotenv').config();
 
 const app = express();
@@ -24,7 +26,8 @@ app.use('/api/admin', adminRoutes);
 app.use('/api/company', companyRoutes);
 app.use('/api/user', userRoutes);
 app.use('/api/trips', tripRoutes);
-
+app.use('/api/bookings', bookingRoutes); // إضافة مسارات الحجز
+app.use('/api/cash', cashRoutes); // إضافة مسارات الدفع النقدي
 // الاتصال بقاعدة البيانات
 mongoose.connect(process.env.MONGO_URI)
   .then(() => console.log("تم الاتصال بـ MongoDB بنجاح"))

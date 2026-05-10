@@ -481,10 +481,10 @@ const TripsManagement = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 flex font-tajawal" dir="rtl">
+    <div className="min-h-screen bg-gray-50 flex font-tajawal w-full" dir="rtl">
       {/* Toast Notification */}
       {toast && (
-        <div className="fixed top-20 left-1/2 transform -translate-x-1/2 z-50 animate-slide-down">
+        <div className="fixed w-full top-20 left-1/2 transform -translate-x-1/2 z-50 animate-slide-down">
           <div className={`px-6 py-3 rounded-2xl shadow-2xl flex items-center gap-3 ${
             toast.type === "success" ? "bg-green-500 text-white" : 
             toast.type === "warning" ? "bg-orange-500 text-white" : "bg-red-500 text-white"
@@ -511,7 +511,7 @@ const TripsManagement = () => {
       </div>
       
       {/* Main Content */}
-      <div className="lg:mr-20 transition-all duration-300">
+      <div className=" w-full transition-all duration-300">
         <main className="w-full">
           {/* Header */}
           <div className="sticky top-0 z-30 bg-white/80 backdrop-blur-md border-b border-gray-100 shadow-sm">

@@ -8,15 +8,15 @@ export default function Card(props) {
 
   return (
     <>
-      <div className="w-11/12 h-40 rounded-3xl 
-    border-gray-300 border-2  ml-[16.5%] mt-4 bg-white font-tajawal flex flex-row-reverse mr-32">
+      <div className="w-11/12 h-40 rounded-3xl font-Tajawal
+    border-gray-300 border-2  ml-[16.5%] mt-4 bg-white font-Tajawal flex flex-row-reverse mr-32">
         <div className="w-[200px] border-l-2 h-full place-self-end border-gray-400">
           <div className="h-full flex flex-col">
             
             <p className="text-gray-500 w-full text-center  h-1/3 place-content-center flex-initial">سعر التذكرة</p>
             <div className="flex">
-              <h1 className="text-2xl place-self-center font-bold font-tajawal ml-10 -mt-4">ل,س</h1>
-              <h1 className="text-2xl place-self-center font-bold font-tajawal ml-1 -mt-4 ">{props.price}</h1>
+              <h1 className="text-2xl place-self-center font-bold font-Tajawal ml-10 -mt-4">ل,س</h1>
+              <h1 className="text-2xl place-self-center font-bold font-Tajawal ml-1 -mt-4 ">{props.price}</h1>
             </div>
             <div className="mt-6">
               

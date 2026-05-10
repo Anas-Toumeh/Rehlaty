@@ -10,17 +10,82 @@ export default function Cinform() {
   const [submitting, setSubmitting] = useState(false);
   const [trip, setTrip] = useState(null);
   const [seatsCount, setSeatsCount] = useState(1);
+  const [bookedSeats, setBookedSeats] = useState([]);
+  const [showPayment, setShowPayment] = useState(false);
+  const [paymentStep, setPaymentStep] = useState('form'); // form, checking, processing
   
-  // ✅ تغيير هيكل بيانات الركاب إلى مصفوفة
+  // معلومات الدفع
+  const [paymentInfo, setPaymentInfo] = useState({
+    phone: "",
+    password: "",
+    rememberMe: false
+  });
+  const [paymentError, setPaymentError] = useState("");
+  const [balanceInfo, setBalanceInfo] = useState(null);
+  
+  // مصفوفة الركاب
   const [passengers, setPassengers] = useState([
-    { fullName: "", nationalId: "", phone: "" }
+    { 
+      seatNumber: null,
+      passengerName: "", 
+      passengerGender: "Male",
+      passengerPhone: "",
+      passengerNationalId: ""
+    }
   ]);
 
-  // جلب بيانات الرحلة من الـ API
+  // دالة لجلب المقاعد المحجوزة
+  const fetchBookedSeats = async (tripId) => {
+    try {
+      const response = await API.get(`/bookings/booked-seats/${tripId}`);
+      if (response.data.success) {
+        setBookedSeats(response.data.bookedSeats);
+        return response.data.bookedSeats;
+      }
+      return [];
+    } catch (error) {
+      console.error("Error fetching booked seats:", error);
+      return [];
+    }
+  };
+
+  // دالة لإيجاد أول مقعد متاح
+  const findNextAvailableSeat = (bookedSeatsList, totalSeats) => {
+    for (let i = 1; i <= totalSeats; i++) {
+      if (!bookedSeatsList.includes(i)) {
+        return i;
+      }
+    }
+    return null;
+  };
+
+  // تحديث أرقام المقاعد
+  const updateSeatNumbers = (count, bookedSeatsList, totalSeats, currentPassengers) => {
+    const newPassengers = [];
+    const usedSeats = [...bookedSeatsList];
+    
+    for (let i = 0; i < count; i++) {
+      const nextSeat = findNextAvailableSeat(usedSeats, totalSeats);
+      
+      if (nextSeat) {
+        const existingPassenger = currentPassengers[i];
+        newPassengers.push({
+          seatNumber: nextSeat,
+          passengerName: existingPassenger?.passengerName || "",
+          passengerGender: existingPassenger?.passengerGender || "Male",
+          passengerPhone: existingPassenger?.passengerPhone || "",
+          passengerNationalId: existingPassenger?.passengerNationalId || ""
+        });
+        usedSeats.push(nextSeat);
+      }
+    }
+    return newPassengers;
+  };
+
+  // جلب بيانات الرحلة
   useEffect(() => {
     const fetchTripData = async () => {
       if (!tripId) {
-        console.error("No ID found in URL");
         alert("معرّف الرحلة غير موجود");
         navigate('/user/dashboard');
         return;
@@ -28,10 +93,14 @@ export default function Cinform() {
 
       try {
         setLoading(true);
-        const response = await API.get(`/trips/${tripId}`);
         
-        if (response.data.success) {
-          const tripData = response.data.trip;
+        const tripResponse = await API.get(`/trips/details/${tripId}`);
+        
+        if (tripResponse.data.success) {
+          const tripData = tripResponse.data.trip;
+          const totalSeats = tripData.totalSeats || 45;
+          const bookedSeatsList = await fetchBookedSeats(tripId);
+          
           setTrip({
             _id: tripData._id,
             companyName: tripData.companyId?.name || "شركة النقل",
@@ -41,9 +110,27 @@ export default function Cinform() {
             departureTime: tripData.departureTime,
             arrivalTime: tripData.arrivalTime,
             price: tripData.price,
-            availableSeats: tripData.availableSeats || tripData.totalSeats || 45,
-            totalSeats: tripData.totalSeats
+            availableSeats: (totalSeats - bookedSeatsList.length),
+            totalSeats: totalSeats
           });
+          
+          const initialSeats = [];
+          const usedSeats = [...bookedSeatsList];
+          for (let i = 0; i < seatsCount; i++) {
+            const nextSeat = findNextAvailableSeat(usedSeats, totalSeats);
+            if (nextSeat) {
+              initialSeats.push(nextSeat);
+              usedSeats.push(nextSeat);
+            }
+          }
+          
+          setPassengers(initialSeats.map(seatNum => ({
+            seatNumber: seatNum,
+            passengerName: "",
+            passengerGender: "Male",
+            passengerPhone: "",
+            passengerNationalId: ""
+          })));
         } else {
           alert("حدث خطأ في تحميل بيانات الرحلة");
           navigate('/user/dashboard');
@@ -60,50 +147,236 @@ export default function Cinform() {
     fetchTripData();
   }, [tripId, navigate]);
 
-  // ✅ تحديث عدد المقاعد وإضافة/إزالة مربعات الركاب
-  const handleSeatsChange = (e) => {
-    const value = parseInt(e.target.value);
-    if (value >= 1 && value <= (trip?.availableSeats || 10)) {
-      setSeatsCount(value);
-      
-      // تحديث عدد الركاب في المصفوفة
-      const newPassengers = [...passengers];
-      if (value > passengers.length) {
-        // إضافة راكب جديد
-        for (let i = passengers.length; i < value; i++) {
-          newPassengers.push({ fullName: "", nationalId: "", email: "", phone: "" });
-        }
-      } else if (value < passengers.length) {
-        // حذف راكب زائد
-        newPassengers.splice(value, passengers.length - value);
-      }
-      setPassengers(newPassengers);
+  // تحديث أرقام المقاعد عند تغيير عدد المقاعد
+  useEffect(() => {
+    if (trip && trip.totalSeats) {
+      const updatedPassengers = updateSeatNumbers(
+        seatsCount, 
+        bookedSeats, 
+        trip.totalSeats, 
+        passengers
+      );
+      setPassengers(updatedPassengers);
     }
-  };
+  }, [seatsCount, bookedSeats, trip?.totalSeats]);
 
-  // ✅ زيادة عدد المقاعد
   const incrementSeats = () => {
     if (seatsCount < (trip?.availableSeats || 10)) {
       setSeatsCount(seatsCount + 1);
-      setPassengers([...passengers, { fullName: "", nationalId: "", email: "", phone: "" }]);
     }
   };
 
-  // ✅ تقليل عدد المقاعد
   const decrementSeats = () => {
     if (seatsCount > 1) {
       setSeatsCount(seatsCount - 1);
-      const newPassengers = [...passengers];
-      newPassengers.pop();
-      setPassengers(newPassengers);
     }
   };
 
-  // ✅ تحديث معلومات راكب معين
   const handlePassengerChange = (index, field, value) => {
     const updatedPassengers = [...passengers];
     updatedPassengers[index][field] = value;
     setPassengers(updatedPassengers);
+  };
+
+  const handleSeatNumberChange = (index, newSeatNumber) => {
+    const seatNum = parseInt(newSeatNumber);
+    if (isNaN(seatNum)) return;
+    
+    if (seatNum < 1 || seatNum > (trip?.totalSeats || 45)) {
+      alert(`رقم المقعد يجب أن يكون بين 1 و ${trip?.totalSeats}`);
+      return;
+    }
+    
+    const allBookedSeats = [...bookedSeats];
+    for (let i = 0; i < passengers.length; i++) {
+      if (i !== index && passengers[i].seatNumber) {
+        allBookedSeats.push(passengers[i].seatNumber);
+      }
+    }
+    
+    if (allBookedSeats.includes(seatNum)) {
+      alert(`المقعد رقم ${seatNum} محجوز بالفعل. الرجاء اختيار مقعد آخر.`);
+      return;
+    }
+    
+    const updatedPassengers = [...passengers];
+    updatedPassengers[index].seatNumber = seatNum;
+    setPassengers(updatedPassengers);
+  };
+
+  const handlePaymentChange = (e) => {
+    const { name, value, type, checked } = e.target;
+    setPaymentInfo(prev => ({
+      ...prev,
+      [name]: type === 'checkbox' ? checked : value
+    }));
+    setPaymentError("");
+  };
+
+  // ✅ التحقق من الرصيد
+  const checkBalance = async () => {
+    if (!paymentInfo.phone || !paymentInfo.password) {
+      setPaymentError("الرجاء إدخال رقم الهاتف وكلمة المرور");
+      return false;
+    }
+    
+    setPaymentStep('checking');
+    
+    try {
+      const response = await API.post('/cash/check-balance', {
+        phone: paymentInfo.phone,
+        password: paymentInfo.password
+      });
+      
+      if (response.data.success) {
+        setBalanceInfo({
+          balance: response.data.balance,
+          name: response.data.name
+        });
+        setPaymentStep('processing');
+        return true;
+      }
+    } catch (error) {
+      console.error("Balance check error:", error);
+      const message = error.response?.data?.message || "فشل في التحقق من الرصيد";
+      setPaymentError(message);
+      setPaymentStep('form');
+      return false;
+    }
+    return false;
+  };
+
+  // ✅ إتمام الدفع
+  const processPayment = async () => {
+    const totalAmount = calculateTotalPrice();
+    
+    setPaymentStep('processing');
+    
+    try {
+      const response = await API.post('/cash/pay', {
+        phone: paymentInfo.phone,
+        password: paymentInfo.password,
+        amount: totalAmount,
+        bookingId: `BOOKING_${Date.now()}_${trip._id}`
+      });
+      
+      if (response.data.success) {
+        setPaymentStep('form');
+        return { success: true, balance: response.data.balance };
+      }
+    } catch (error) {
+      console.error("Payment error:", error);
+      const message = error.response?.data?.message || "فشل في عملية الدفع";
+      setPaymentError(message);
+      setPaymentStep('form');
+      return { success: false, message };
+    }
+  };
+
+  // ✅ إتمام الحجز كاملاً
+  const completeBooking = async () => {
+    try {
+      const bookingData = {
+        tripId: trip._id,
+        selectedSeats: passengers.map(p => ({
+          seatNumber: p.seatNumber,
+          passengerName: p.passengerName,
+          passengerGender: p.passengerGender,
+          passengerPhone: p.passengerPhone,
+          passengerNationalId: p.passengerNationalId
+        })),
+        totalPrice: calculateTotalPrice(),
+        paymentPhone: paymentInfo.phone
+      };
+
+      const response = await API.post('/bookings', bookingData);
+      
+      if (response.data.success) {
+        return true;
+      }
+      return false;
+    } catch (error) {
+      console.error("Booking error:", error);
+      return false;
+    }
+  };
+
+  // ✅ معالج الدفع الرئيسي
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    
+    // التحقق من بيانات الركاب
+    for (let i = 0; i < passengers.length; i++) {
+      const p = passengers[i];
+      if (!p.seatNumber) {
+        alert(`الرجاء تحديد رقم مقعد للراكب رقم ${i + 1}`);
+        return;
+      }
+      if (!p.passengerName.trim()) {
+        alert(`الرجاء إدخال اسم الراكب رقم ${i + 1}`);
+        return;
+      }
+      if (!p.passengerPhone.trim()) {
+        alert(`الرجاء إدخال رقم الهاتف للراكب رقم ${i + 1}`);
+        return;
+      }
+      if (!p.passengerNationalId.trim()) {
+        alert(`الرجاء إدخال الرقم الوطني للراكب رقم ${i + 1}`);
+        return;
+      }
+    }
+    
+    // التحقق من معلومات الدفع
+    if (!paymentInfo.phone || !paymentInfo.password) {
+      setPaymentError("الرجاء إدخال رقم الهاتف وكلمة المرور للدفع");
+      setShowPayment(true);
+      return;
+    }
+    
+    setSubmitting(true);
+    
+    try {
+      // 1. التحقق من الرصيد
+      const balanceValid = await checkBalance();
+      if (!balanceValid) {
+        setSubmitting(false);
+        return;
+      }
+      
+      const totalAmount = calculateTotalPrice();
+      
+      // 2. التأكيد مع المستخدم
+      const confirmMessage = `تأكيد الدفع\n\nالمبلغ: ${totalAmount.toLocaleString()} ل.س\nالرصيد المتاح: ${balanceInfo?.balance?.toLocaleString()} ل.س\n\nهل تريد تأكيد الدفع؟`;
+      
+      if (!window.confirm(confirmMessage)) {
+        setSubmitting(false);
+        return;
+      }
+      
+      // 3. إتمام الدفع
+      const paymentResult = await processPayment();
+      
+      if (!paymentResult.success) {
+        setSubmitting(false);
+        return;
+      }
+      
+      // 4. إتمام الحجز
+      const bookingResult = await completeBooking();
+      
+      if (bookingResult) {
+        alert(`✅ تم الحجز بنجاح!\n\nالمبلغ المدفوع: ${totalAmount.toLocaleString()} ل.س\nالرصيد المتبقي: ${paymentResult.balance?.toLocaleString()} ل.س\n\nتم إرسال تفاصيل الحجز إلى بريدك الإلكتروني.`);
+        navigate('/user/my-bookings');
+      } else {
+        alert("⚠️ تم خصم المبلغ ولكن حدث خطأ في تأكيد الحجز. يرجى التواصل مع الدعم.");
+      }
+      
+    } catch (error) {
+      console.error("Payment process error:", error);
+      alert("حدث خطأ في عملية الدفع. يرجى المحاولة مرة أخرى.");
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const calculateTotalPrice = () => {
@@ -128,52 +401,6 @@ export default function Cinform() {
       hour: '2-digit',
       minute: '2-digit'
     });
-  };
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    
-    // التحقق من بيانات جميع الركاب
-    for (let i = 0; i < passengers.length; i++) {
-      const p = passengers[i];
-      if (!p.fullName.trim()) {
-        alert(`الرجاء إدخال الاسم الثلاثي للراكب رقم ${i + 1}`);
-        return;
-      }
-      if (!p.nationalId.trim()) {
-        alert(`الرجاء إدخال الرقم الوطني للراكب رقم ${i + 1}`);
-        return;
-      }
-      if (!p.phone.trim()) {
-        alert(`الرجاء إدخال رقم الهاتف للراكب رقم ${i + 1}`);
-        return;
-      }
-    }
-
-    setSubmitting(true);
-
-    try {
-      const bookingData = {
-        tripId: trip._id,
-        seatsCount: seatsCount,
-        passengers: passengers, // ✅ إرسال بيانات جميع الركاب
-        totalPrice: calculateTotalPrice()
-      };
-
-      const response = await API.post('/bookings', bookingData);
-      
-      if (response.data.success) {
-        alert(`تم إتمام الحجز بنجاح لـ ${seatsCount} راكب!`);
-        navigate('/user/my-bookings', { 
-          state: { booking: response.data.booking }
-        });
-      }
-    } catch (error) {
-      console.error("Booking error:", error);
-      alert(error.response?.data?.message || "حدث خطأ في إتمام الحجز");
-    } finally {
-      setSubmitting(false);
-    }
   };
 
   if (loading) {
@@ -206,16 +433,16 @@ export default function Cinform() {
   return (
     <div className="font-Tajawal bg-gray-50 min-h-screen pb-10">
       {/* Header */}
-      <div className="w-full text-right pr-[11%] bg-[#1A5276] h-[86px] text-white text-3xl font-bold flex items-center">
+      <div className="w-full text-right pr-[11%] bg-[#1A5276] h-[86px] text-white text-3xl font-bold flex items-center" dir="rtl">
         <p>إكمال عملية الحجز</p>
       </div>
 
       <form onSubmit={handleSubmit} className="mt-4">
         <div className="mx-[11%] w-[78%] mt-[80px] grid grid-cols-1 lg:grid-cols-2 gap-6">
           
-          {/* العمود الأيمن - معلومات الركاب */}
-          <div className="order-2 lg:order-1">
-            {/* ✅ معلومات كل راكب على حدة */}
+          {/* العمود الأيمن - معلومات الركاب والدفع */}
+          <div className="order-2 lg:order-1" dir="rtl">
+            {/* معلومات الركاب */}
             {passengers.map((passenger, index) => (
               <div key={index} className="bg-white text-right rounded-2xl shadow-lg p-5 mb-6">
                 <p className="text-xl border-b-2 pb-3 font-bold text-[#1A5276]">
@@ -223,11 +450,25 @@ export default function Cinform() {
                 </p>
                 
                 <div className="mt-4">
-                  <label className="block text-gray-700 mb-2">الاسم الثلاثي</label>
+                  <label className="block text-gray-700 mb-2">رقم المقعد</label>
+                  <input
+                    type="number"
+                    value={passenger.seatNumber || ""}
+                    onChange={(e) => handleSeatNumberChange(index, e.target.value)}
+                    className="w-full h-[50px] border-2 border-gray-200 rounded-xl px-4 focus:border-[#3E92CC] focus:outline-none"
+                    placeholder="يتحدد تلقائياً"
+                    min="1"
+                    max={trip.totalSeats}
+                    required
+                  />
+                </div>
+                
+                <div className="mt-4">
+                  <label className="block text-gray-700 mb-2">الاسم الكامل</label>
                   <input
                     type="text"
-                    value={passenger.fullName}
-                    onChange={(e) => handlePassengerChange(index, "fullName", e.target.value)}
+                    value={passenger.passengerName}
+                    onChange={(e) => handlePassengerChange(index, "passengerName", e.target.value)}
                     className="w-full h-[50px] border-2 border-gray-200 rounded-xl px-4 focus:border-[#3E92CC] focus:outline-none"
                     placeholder="أحمد محمد علي"
                     required
@@ -235,35 +476,141 @@ export default function Cinform() {
                 </div>
                 
                 <div className="mt-4">
+                  <label className="block text-gray-700 mb-2">الجنس</label>
+                  <div className="flex gap-4">
+                    <label className="flex items-center gap-2">
+                      <input
+                        type="radio"
+                        name={`gender_${index}`}
+                        value="Male"
+                        checked={passenger.passengerGender === "Male"}
+                        onChange={(e) => handlePassengerChange(index, "passengerGender", e.target.value)}
+                        className="w-4 h-4"
+                      />
+                      <span>ذكر</span>
+                    </label>
+                    <label className="flex items-center gap-2">
+                      <input
+                        type="radio"
+                        name={`gender_${index}`}
+                        value="Female"
+                        checked={passenger.passengerGender === "Female"}
+                        onChange={(e) => handlePassengerChange(index, "passengerGender", e.target.value)}
+                        className="w-4 h-4"
+                      />
+                      <span>أنثى</span>
+                    </label>
+                  </div>
+                </div>
+                
+                <div className="mt-4" >
+                  <label className="block text-gray-700 mb-2">رقم الهاتف</label>
+                  <input
+                    type="tel"
+                    value={passenger.passengerPhone}
+                    onChange={(e) => handlePassengerChange(index, "passengerPhone", e.target.value)}
+                    className="w-full h-[50px] border-2 border-gray-200 rounded-xl px-4 focus:border-[#3E92CC] focus:outline-none"
+                    placeholder="09xxxxxxxx"
+                    required
+                    dir="rtl"
+                  />
+                </div>
+                
+                <div className="mt-4">
                   <label className="block text-gray-700 mb-2">الرقم الوطني</label>
                   <input
                     type="text"
-                    value={passenger.nationalId}
-                    onChange={(e) => handlePassengerChange(index, "nationalId", e.target.value)}
+                    value={passenger.passengerNationalId}
+                    onChange={(e) => handlePassengerChange(index, "passengerNationalId", e.target.value)}
                     className="w-full h-[50px] border-2 border-gray-200 rounded-xl px-4 focus:border-[#3E92CC] focus:outline-none"
                     placeholder="12345678901"
                     required
                   />
                 </div>
-                
-                
-                <div className="mt-4">
-                  <label className="block text-gray-700 mb-2">رقم الهاتف</label>
-                  <input
-                    type="tel"
-                    value={passenger.phone}
-                    onChange={(e) => handlePassengerChange(index, "phone", e.target.value)}
-                    className="w-full h-[50px] border-2 border-gray-200 rounded-xl px-4 focus:border-[#3E92CC] focus:outline-none"
-                    placeholder="09xxxxxxxx"
-                    required
-                  />
-                </div>
               </div>
             ))}
+
+            {/* مربع معلومات الدفع */}
+            <div className="bg-gradient-to-r from-blue-50 to-indigo-50 text-right rounded-2xl shadow-lg p-5 mb-6 border border-blue-100">
+              <div className="flex items-center justify-between border-b-2 pb-3 mb-4">
+                <button
+                  type="button"
+                  onClick={() => setShowPayment(!showPayment)}
+                  className="text-[#3E92CC] hover:text-[#1A5276] transition"
+                >
+                  <i className={`fas ${showPayment ? "fa-chevron-up" : "fa-chevron-down"} ml-2`}></i>
+                </button>
+                <p className="text-xl font-bold text-[#1A5276] flex items-center gap-2">
+                  <i className="fas fa-credit-card text-[#3E92CC]"></i>
+                  معلومات الدفع
+                </p>
+              </div>
+              
+              {showPayment && (
+                <div className="space-y-4">
+                  <div className="bg-blue-100 rounded-xl p-3 text-center">
+                    <p className="text-sm text-blue-800">
+                      <i className="fas fa-shield-alt ml-2"></i>
+                      سيتم خصم المبلغ من رصيد محفظتك الإلكترونية
+                    </p>
+                  </div>
+                  
+                  <div>
+                    <label className="block text-gray-700 mb-2">
+                      <i className="fas fa-phone ml-2 text-[#3E92CC]"></i>
+                      رقم الهاتف المرتبط بالدفع
+                    </label>
+                    <input
+                      type="tel"
+                      name="phone"
+                      value={paymentInfo.phone}
+                      onChange={handlePaymentChange}
+                      className="w-full h-[50px] border-2 border-gray-200 rounded-xl px-4 focus:border-[#3E92CC] focus:outline-none"
+                      placeholder="09xxxxxxxx"
+                      required
+                    />
+                  </div>
+                  
+                  <div>
+                    <label className="block text-gray-700 mb-2">
+                      <i className="fas fa-lock ml-2 text-[#3E92CC]"></i>
+                      كلمة المرور
+                    </label>
+                    <input
+                      type="password"
+                      name="password"
+                      value={paymentInfo.password}
+                      onChange={handlePaymentChange}
+                      className="w-full h-[50px] border-2 border-gray-200 rounded-xl px-4 focus:border-[#3E92CC] focus:outline-none"
+                      placeholder="••••••"
+                      required
+                    />
+                  </div>
+                  
+                  {paymentError && (
+                    <div className="bg-red-50 border border-red-200 rounded-xl p-3">
+                      <p className="text-red-600 text-sm text-center">
+                        <i className="fas fa-exclamation-circle ml-2"></i>
+                        {paymentError}
+                      </p>
+                    </div>
+                  )}
+                  
+                  {balanceInfo && paymentStep === 'processing' && (
+                    <div className="bg-green-50 border border-green-200 rounded-xl p-3">
+                      <p className="text-green-600 text-sm text-center">
+                        <i className="fas fa-check-circle ml-2"></i>
+                        الرصيد المتاح: {balanceInfo.balance.toLocaleString()} ل.س
+                      </p>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
           </div>
 
           {/* العمود الأيسر - ملخص الرحلة */}
-          <div className="order-1 lg:order-2">
+          <div className="order-1 lg:order-2" dir="rtl">
             <div className="bg-white rounded-2xl shadow-lg p-5 sticky top-5">
               {/* معلومات الشركة */}
               <div className="flex items-center gap-4 border-b-2 pb-4">
@@ -309,8 +656,16 @@ export default function Cinform() {
                 <p className="text-[#3E92CC] font-bold">{formatTime(trip.arrivalTime)}</p>
               </div>
 
+              {/* المقاعد المحجوزة */}
+              <div className="mt-4 p-3 bg-gray-50 rounded-xl">
+                <p className="text-sm text-gray-600 font-bold">المقاعد المحجوزة مسبقاً:</p>
+                <p className="text-sm text-gray-500">
+                  {bookedSeats.length > 0 ? bookedSeats.join(", ") : "لا يوجد مقاعد محجوزة"}
+                </p>
+              </div>
+
               {/* عدد المقاعد */}
-              <div className="mt-6">
+              <div className="mt-4">
                 <p className="text-gray-700 font-bold mb-2">عدد المقاعد المحجوزة</p>
                 <div className="flex items-center gap-4">
                   <button
@@ -323,7 +678,7 @@ export default function Cinform() {
                   <input
                     type="number"
                     value={seatsCount}
-                    onChange={handleSeatsChange}
+                    onChange={(e) => setSeatsCount(parseInt(e.target.value))}
                     className="w-24 h-12 text-center border-2 border-gray-200 rounded-xl text-xl font-bold"
                     min="1"
                     max={trip.availableSeats}
@@ -337,7 +692,7 @@ export default function Cinform() {
                   </button>
                 </div>
                 <p className="text-gray-400 text-sm mt-2">
-                  * الحد الأقصى المتاح: {trip.availableSeats} مقعد
+                  * المقاعد المتاحة: {trip.availableSeats} من {trip.totalSeats}
                 </p>
               </div>
 
@@ -375,12 +730,12 @@ export default function Cinform() {
                   {submitting ? (
                     <>
                       <i className="fas fa-spinner fa-pulse"></i>
-                      جاري الحجز...
+                      جاري معالجة الدفع...
                     </>
                   ) : (
                     <>
                       <i className="fas fa-check-circle"></i>
-                      إتمام عملية الحجز
+                      تأكيد وإتمام الحجز
                     </>
                   )}
                 </button>

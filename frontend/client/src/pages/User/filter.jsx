@@ -97,8 +97,8 @@ const Filter = ({
       <div className="mb-6">
         <h4 className="text-xl font-bold text-right mb-3">نطاق السعر</h4>
         <div className="flex justify-between mb-3">
-          <p className="text-[#3E92CC] font-bold">{minPrice} ر.س</p>
-          <p className="text-[#3E92CC] font-bold">{maxPrice} ر.س</p>
+          <p className="text-[#3E92CC] font-bold">{minPrice} ل.س</p>
+          <p className="text-[#3E92CC] font-bold">{maxPrice} ل.س</p>
         </div>
         
         <div className="mb-3">

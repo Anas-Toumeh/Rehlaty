@@ -1,17 +1,17 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
 import Card from "./card";
 import home from "../../assets/HomeImage.png";
-import Butten from "./butten";
 import jps from "../../assets/marker-pin-01.png";
 import searsh from "../../assets/search.png";
 import Filter from './filter';
 import API from '../../api/axiosConfig';
 import Nav from './UserNavbar';
+
 const User_dashboard = () => {
   const [trips, setTrips] = useState([]);
   const [loading, setLoading] = useState(true);
   
-  // الفلاتر النشطة (التي تم تطبيقها)
+  // ✅ الفلاتر النشطة (التي تم تطبيقها)
   const [activeFilters, setActiveFilters] = useState({
     from: '',
     to: '',
@@ -23,7 +23,15 @@ const User_dashboard = () => {
     companyFilter: ''
   });
   
-  // الفلاتر المؤقتة (التي يختارها المستخدم في الـ Filter)
+  // ✅ الفلاتر المؤقتة للمدخلات (للبحث المباشر)
+  const [searchInputs, setSearchInputs] = useState({
+    from: '',
+    to: '',
+    date: '',
+    tripType: 'half'
+  });
+  
+  // ✅ الفلاتر المؤقتة للـ Filter
   const [tempFilters, setTempFilters] = useState({
     minPrice: 0,
     maxPrice: 75000,
@@ -35,7 +43,7 @@ const User_dashboard = () => {
   const fetchTrips = useCallback(async (filterParams = {}) => {
     try {
       setLoading(true);
-      console.log(filterParams);
+      console.log('Fetching trips with params:', filterParams);
       
       const response = await API.get('/user/dashboard', {
         params: filterParams
@@ -49,17 +57,28 @@ const User_dashboard = () => {
     }
   }, []);
 
+  // ✅ معالجة تغيير المدخلات المباشرة
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    setSearchInputs(prev => ({
+      ...prev,
+      [name]: value
+    }));
+  };
+
   // ✅ معالجة البحث المباشر
   const handleSearch = (e) => {
     e.preventDefault();
-    const formData = new FormData(e.target);
+    
+    // بناء الفلاتر من المدخلات المباشرة
     const searchFilters = {
-      from: formData.get('from') || '',
-      to: formData.get('to') || '',
-      date: formData.get('date') || '',
-      tripType: formData.get('tripType') || 'half',
-      ...activeFilters
+      ...activeFilters,
+      from: searchInputs.from,
+      to: searchInputs.to,
+      date: searchInputs.date,
+      tripType: searchInputs.tripType
     };
+    
     setActiveFilters(searchFilters);
     fetchTrips(searchFilters);
   };
@@ -91,8 +110,10 @@ const User_dashboard = () => {
 
   return (
     <div className="font-Tajawal bg-gray-50 min-h-screen pb-10">
-      {/* Hero Section */}
+      {/* Navbar */}
       <Nav />
+      
+      {/* Hero Section */}
       <div className="relative flex flex-col mt-6 items-center">
         <img src={home} alt="Hero" className="w-[85%] md:w-[70%] rounded-b-[40px] shadow-sm" />
         
@@ -121,9 +142,10 @@ const User_dashboard = () => {
                 <input 
                   type="text" 
                   name="from"
+                  value={searchInputs.from}
+                  onChange={handleInputChange}
                   className="w-full h-12 pr-10 pl-4 rounded-xl bg-gray-100 focus:bg-white focus:ring-2 ring-blue-100 outline-none transition-all" 
                   placeholder="مدينة الانطلاق"
-                  defaultValue={activeFilters.from}
                 />
               </div>
 
@@ -133,9 +155,10 @@ const User_dashboard = () => {
                 <input 
                   type="text" 
                   name="to"
+                  value={searchInputs.to}
+                  onChange={handleInputChange}
                   className="w-full h-12 pr-10 pl-4 rounded-xl bg-gray-100 focus:bg-white focus:ring-2 ring-blue-100 outline-none transition-all" 
                   placeholder="الوجهة"
-                  defaultValue={activeFilters.to}
                 />
               </div>
 
@@ -143,8 +166,9 @@ const User_dashboard = () => {
                 <label className="block text-sm mb-1 mr-2 text-gray-600">نوع الرحلة</label>
                 <select 
                   name="tripType"
+                  value={searchInputs.tripType}
+                  onChange={handleInputChange}
                   className="w-full h-12 px-4 rounded-xl bg-gray-100 outline-none appearance-none cursor-pointer"
-                  defaultValue={activeFilters.tripType}
                 >
                   <option value="half">ذهاب فقط</option>
                   <option value="full">ذهاب وعودة</option>
@@ -156,8 +180,9 @@ const User_dashboard = () => {
                 <input 
                   type="date" 
                   name="date"
+                  value={searchInputs.date}
+                  onChange={handleInputChange}
                   className="w-full h-12 px-4 rounded-xl bg-gray-100 outline-none"
-                  defaultValue={activeFilters.date}
                 />
               </div>
             </div>
@@ -181,7 +206,9 @@ const User_dashboard = () => {
         </aside>
 
         {/* Left Side: Trip Cards */}
-        <main className="w-3/4 -ml-25 mr-20 flex flex-col gap-6">
+        <main className="w-full lg:w-3/4 flex flex-col -ml-60 mr-20 gap-6">
+         
+          
           {trips.length > 0 ? (
             trips.map((trip) => (
               <Card

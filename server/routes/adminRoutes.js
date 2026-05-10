@@ -27,7 +27,7 @@ const upload = multer({
 
 
 // تطبيق الحماية
-router.use(auth); // حماية عامة أولاً لفك التوكن
+router.use(auth , authorize('Admin')); // حماية عامة أولاً لفك التوكن
 
 // مسارات الأدمن
 router.post('/companies', authorize('Admin'), upload.single('logo'), adminController.createCompany);

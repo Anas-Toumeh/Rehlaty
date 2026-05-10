@@ -14,18 +14,19 @@ const { auth, authorize } = require('../middleware/auth');
 // Middleware المصادقة (افتراضي لديك)
 
 router.use(auth)
-// جميع routes تحتاج مصادقة ودور CompanyManager
-
-// Routes
 router.get('/',getTrips)
-router.get('/:id',getTripById)
-router.use(authorize('CompanyManager', 'Admin','Employee'));
+router.get('/details/:id', authorize('Customer'), getTripById)
+// جميع routes تحتاج مصادقة ودور CompanyManager
+router.use(authorize('CompanyManager', 'Admin'));
+// Routes
+
 router.post('/',createTrip)
    
-// GET /api/trips/available-resources
+router.get('/available-resources', getAvailableResources);  // GET /api/trips/available-resources
 router.get('/stats', getTripStats);                         // GET /api/trips/stats
 
-router.route('/:id')       // GET /api/trips/:id
+router.route('/:id') 
+    .get(getTripById)      // GET /api/trips/:id
     .put(updateTrip)         // PUT /api/trips/:id
     .delete(deleteTrip);     // DELETE /api/trips/:id
 

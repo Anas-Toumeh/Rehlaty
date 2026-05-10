@@ -10,7 +10,6 @@ const auth = (req, res, next) => {
 
     try {
         const decoded = jwt.verify(token, process.env.JWT_SECRET);
-        console.log(jwt.decode);
         
         req.user = decoded; 
         next();
@@ -32,5 +31,5 @@ const authorize = (...roles) => {
     };
 };
 
-// التصدير الصحيح للدالتين معاً
+
 module.exports = { auth, authorize };

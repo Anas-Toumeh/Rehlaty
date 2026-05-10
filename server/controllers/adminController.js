@@ -147,15 +147,17 @@ exports.getActiveTrips = async (req, res) => {
 
         const trips = await Trip.find(query)
             .populate('companyId', 'name logo') // تعديل من company إلى companyId
+            .populate('bookings')
             .sort({ departureTime: 1 });
 
         // إضافة حقل افتراضي لحساب المقاعد المحجوزة قبل الإرسال للفرونت إند
         const formattedTrips = trips.map(trip => {
-            const bookedCount = trip.seats.filter(s => s.isBooked).length;
+            // استخدام الـ virtual getter bookedSeatsCount (يعتمد على populate('bookings'))
+            const bookedCount = trip.bookedSeatsCount || 0;
             return {
                 ...trip._doc,
                 bookedSeats: bookedCount,
-                totalSeats: trip.seats.length
+                totalSeats: trip.totalSeats || 0
             };
         });
 

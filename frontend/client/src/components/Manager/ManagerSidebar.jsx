@@ -19,7 +19,7 @@ const ManagerSidebar = ({ closeSidebar }) => {
   };
 
   return (
-    <aside className="w-80 h-full bg-white border-l border-gray-100 flex flex-col shadow-2xl lg:shadow-none">
+    <aside className="w-80 h-full bg-white flex flex-col shadow-sm h-screen backdrop-blur-md border-l border-gray-100 ">
       {/* Header: Logo & App Name */}
       <div className="p-8 border-b border-gray-50 flex flex-col items-center relative">
         {/* زر الإغلاق للموبايل */}
