@@ -191,7 +191,7 @@ const createTrip = async (req, res) => {
 // @access  Private (CompanyManager)
 const updateTrip = async (req, res) => {
     try {
-        const { status, driverId, notes, price, departureTime, arrivalTime } = req.body;
+        const { from, to, status, driverId, notes, price, departureTime, arrivalTime, busId } = req.body;
         
         const trip = await Trip.findById(req.params.id);
         
@@ -202,19 +202,32 @@ const updateTrip = async (req, res) => {
             });
         }
         
+        // Check for existing bookings - prevent update if bookings exist
+        const bookingsCount = await Booking.countDocuments({ tripId: req.params.id });
+        
+        if (bookingsCount > 0) {
+            return res.status(400).json({
+                success: false,
+                message: 'لا يمكن تعديل هذه الرحلة لأنها تحتوي على حجوزات'
+            });
+        }
+        
+        if (from) trip.from = from;
+        if (to) trip.to = to;
         if (status) trip.status = status;
         if (driverId) trip.driverId = driverId;
+        if (busId) trip.busId = busId;
         if (notes) trip.notes = notes;
         if (price) trip.price = price;
         if (departureTime) trip.departureTime = departureTime;
         if (arrivalTime) trip.arrivalTime = arrivalTime;
         
-        await trip.save();
+        const updatedTrip = await trip.save();
         
         res.status(200).json({
             success: true,
             message: 'تم تحديث الرحلة بنجاح',
-            trip
+            trip: updatedTrip
         });
         
     } catch (error) {

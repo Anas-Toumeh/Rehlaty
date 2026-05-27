@@ -2,6 +2,9 @@ const User = require("../Modle/User");
 const Bus = require("../Modle/Bus");
 const Trip = require("../Modle/Trip");
 const Booking = require("../Modle/Booking");
+const Payment = require("../Modle/Payment");
+const Cash = require("../Modle/Cash");
+const Company = require("../Modle/Company");
 const bcrypt = require("bcryptjs");
 
 
@@ -859,18 +862,40 @@ exports.getTripStats = async (req, res) => {
         const ongoingTrips = trips.filter(t => t.status === 'OnWay').length;
         const cancelledTrips = trips.filter(t => t.status === 'Cancelled').length;
         
-        const bookingsQuery = {};
+        // Get company
+        let company = null;
         if (req.user.role === 'CompanyManager') {
-            const companyTrips = await Trip.find({ companyId: req.user.companyId }).select('_id');
-            const tripIds = companyTrips.map(t => t._id);
-            bookingsQuery.tripId = { $in: tripIds };
+            company = await Company.findById(req.user.companyId);
         }
         
-        const bookings = await Booking.find(bookingsQuery);
+        // Find company wallet
+        let companyCash = null;
+        if (company) {
+            companyCash = await Cash.findOne({ phone: company.phone });
+        }
         
-        const totalRevenue = bookings.reduce((sum, booking) => sum + (booking.totalPrice || 0), 0);
+        // Calculate total revenue from completed payments
+        let totalRevenue = 0;
+        if (companyCash) {
+            const payments = await Payment.find({
+                status: "Completed",
+                toCash: companyCash._id
+            });
+            totalRevenue = payments.reduce((sum, p) => sum + (p.amount || 0), 0);
+        }
         
-        const averageTicketPrice = bookings.length > 0 ? totalRevenue / bookings.length : 0;
+        // Get bookings count for this company
+        let totalBookings = 0;
+        if (req.user.role === 'CompanyManager') {
+            totalBookings = await Booking.countDocuments({
+                companyId: req.user.companyId
+            });
+        } else {
+            totalBookings = await Booking.countDocuments({});
+        }
+        
+        const averageTicketPrice = totalBookings > 0 ? totalRevenue / totalBookings : 0;
+        const walletBalance = companyCash?.balance || 0;
         
         res.status(200).json({
             success: true,
@@ -880,9 +905,10 @@ exports.getTripStats = async (req, res) => {
                 ongoing: ongoingTrips,
                 cancelled: cancelledTrips,
                 totalTrips: trips.length,
-                totalBookings: bookings.length,
-                totalRevenue: totalRevenue,
-                averageTicketPrice: Math.round(averageTicketPrice)
+                totalBookings: totalBookings,
+                totalRevenue: Math.round(totalRevenue),
+                averageTicketPrice: Math.round(averageTicketPrice),
+                walletBalance: walletBalance
             }
         });
         
@@ -908,6 +934,18 @@ exports.getMonthlyReport = async (req, res) => {
         const startDate = new Date(selectedYear, selectedMonth - 1, 1);
         const endDate = new Date(selectedYear, selectedMonth, 0, 23, 59, 59);
         
+        // Get company
+        let company = null;
+        if (req.user.role === 'CompanyManager') {
+            company = await Company.findById(req.user.companyId);
+        }
+        
+        // Find company wallet
+        let companyCash = null;
+        if (company) {
+            companyCash = await Cash.findOne({ phone: company.phone });
+        }
+        
         // بناء الاستعلام
         let tripQuery = {
             status: 'Completed',
@@ -925,10 +963,48 @@ exports.getMonthlyReport = async (req, res) => {
         const tripIds = completedTrips.map(t => t._id);
         let bookingQuery = { tripId: { $in: tripIds } };
         
-        const bookings = await Booking.find(bookingQuery);
+        // Count total monthly bookings scoped to company with date filtering
+        let monthlyBookings = 0;
+        let monthlyPaidBookings = 0;
         
-        // حساب الإيرادات الشهرية
-        const totalRevenue = bookings.reduce((sum, booking) => sum + (booking.totalPrice || 0), 0);
+        // Use $or to support both bookingDate and createdAt
+        const dateFilterQuery = {
+            companyId: req.user.role === 'CompanyManager' ? req.user.companyId : { $exists: true },
+            $or: [
+                { bookingDate: { $gte: startDate, $lte: endDate } },
+                { createdAt: { $gte: startDate, $lte: endDate } }
+            ]
+        };
+        
+        monthlyBookings = await Booking.countDocuments(dateFilterQuery);
+        
+        // Count paid bookings in the month
+        monthlyPaidBookings = await Booking.countDocuments({
+            ...dateFilterQuery,
+            paymentStatus: 'Paid'
+        });
+        
+        const cancelledBookings = await Booking.countDocuments({
+            companyId: req.user.role === 'CompanyManager' ? req.user.companyId : { $exists: true },
+            paymentStatus: 'Cancelled'
+        });
+        
+        // Calculate monthly revenue from completed payments
+        let monthlyRevenue = 0;
+        if (companyCash) {
+            const payments = await Payment.find({
+                status: "Completed",
+                toCash: companyCash._id,
+                createdAt: { $gte: startDate, $lte: endDate }
+            });
+            monthlyRevenue = payments.reduce((sum, p) => sum + (p.amount || 0), 0);
+        }
+        
+        // Calculate average ticket price
+        const averageTicketPrice = monthlyPaidBookings > 0 ? monthlyRevenue / monthlyPaidBookings : 0;
+        
+        // Get wallet balance
+        const walletBalance = companyCash?.balance || 0;
         
         // إحصائيات الرحلات اليومية
         const dailyStats = [];
@@ -945,7 +1021,17 @@ exports.getMonthlyReport = async (req, res) => {
             
             const dayTripIds = dayTrips.map(t => t._id);
             const dayBookings = bookings.filter(b => dayTripIds.includes(b.tripId.toString()));
-            const dayRevenue = dayBookings.reduce((sum, b) => sum + (b.totalPrice || 0), 0);
+            
+            // Calculate daily revenue from payments
+            let dayRevenue = 0;
+            if (companyCash) {
+                const dayPayments = await Payment.find({
+                    status: "Completed",
+                    toCash: companyCash._id,
+                    createdAt: { $gte: dayStart, $lte: dayEnd }
+                });
+                dayRevenue = dayPayments.reduce((sum, p) => sum + (p.amount || 0), 0);
+            }
             
             dailyStats.push({
                 date: `${day}/${selectedMonth}/${selectedYear}`,
@@ -961,8 +1047,12 @@ exports.getMonthlyReport = async (req, res) => {
                 month: selectedMonth,
                 year: selectedYear,
                 totalTrips: completedTrips.length,
-                totalBookings: bookings.length,
-                totalRevenue: totalRevenue,
+                totalBookings: monthlyBookings,
+                monthlyPaidBookings: monthlyPaidBookings,
+                cancelledBookings: cancelledBookings,
+                totalRevenue: Math.round(monthlyRevenue),
+                averageTicketPrice: Math.round(averageTicketPrice),
+                walletBalance: walletBalance,
                 dailyStats: dailyStats
             }
         });

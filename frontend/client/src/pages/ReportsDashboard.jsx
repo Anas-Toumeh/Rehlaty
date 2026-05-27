@@ -30,6 +30,7 @@ const ReportsDashboard = () => {
     totalBookings: 0,
     totalRevenue: 0,
     averageTicketPrice: 0,
+    walletBalance: 0,
     
     // Monthly statistics
     monthlyTrips: [],
@@ -101,7 +102,8 @@ const ReportsDashboard = () => {
           cancelledTrips: response.data.stats.cancelled || 0,
           totalBookings: response.data.stats.totalBookings || 0,
           totalRevenue: response.data.stats.totalRevenue || 0,
-          averageTicketPrice: response.data.stats.averageTicketPrice || 0
+          averageTicketPrice: response.data.stats.averageTicketPrice || 0,
+          walletBalance: response.data.stats.walletBalance || 0
         }));
       }
     } catch (error) {
@@ -345,6 +347,18 @@ const ReportsDashboard = () => {
                 icon="fa-chart-line" 
                 color="from-amber-500 to-amber-600"
                 bgColor="bg-amber-50"
+                isCurrency
+              />
+            </div>
+
+            {/* Wallet balance card */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+              <StatCard 
+                title="رصيد محفظة الشركة" 
+                value={formatCurrency(stats.walletBalance)} 
+                icon="fa-wallet" 
+                color="from-cyan-500 to-blue-500"
+                bgColor="bg-cyan-50"
                 isCurrency
               />
             </div>

@@ -351,6 +351,8 @@ const TripsManagement = () => {
         setEditingTripId(null);
         resetForm();
         fetchTrips();
+      } else {
+        showToast(response.data.message || "فشل في تعديل الرحلة", "error");
       }
     } catch (error) {
       showToast(error.response?.data?.message || "فشل في تعديل الرحلة", "error");
@@ -366,6 +368,8 @@ const TripsManagement = () => {
         showToast("تم حذف الرحلة بنجاح", "success");
         setShowDeleteConfirm(false);
         fetchTrips();
+      } else {
+        showToast(response.data.message || "فشل في الحذف", "error");
       }
     } catch (error) {
       showToast(error.response?.data?.message || "فشل في الحذف", "error");
@@ -484,8 +488,8 @@ const TripsManagement = () => {
     <div className="min-h-screen bg-gray-50 flex font-tajawal w-full" dir="rtl">
       {/* Toast Notification */}
       {toast && (
-        <div className="fixed w-full top-20 left-1/2 transform -translate-x-1/2 z-50 animate-slide-down">
-          <div className={`px-6 py-3 rounded-2xl shadow-2xl flex items-center gap-3 ${
+        <div className="fixed w-full top-5 left-1/2 transform -translate-x-1/2 z-[99999] animate-slide-down">
+          <div className={`mx-auto max-w-md px-6 py-3 rounded-2xl shadow-2xl flex items-center gap-3 ${
             toast.type === "success" ? "bg-green-500 text-white" : 
             toast.type === "warning" ? "bg-orange-500 text-white" : "bg-red-500 text-white"
           }`}>
